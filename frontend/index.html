@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+      onload="renderMathInElement(document.getElementById('implementation-content'), {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+    <title>Gravitational Waves</title>
+  </head>
+  <body>
+    <div id="loading-overlay" class="hidden">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading simulation...</div>
+    </div>
+
+    <div id="app">
+      <!-- Top bar: simulation info -->
+      <header id="info-bar">
+        <div id="sim-title">Loading...</div>
+        <div id="sim-params"></div>
+      </header>
+
+      <!-- Tab navigation -->
+      <nav id="tabs">
+        <button class="tab active" data-tab="merger">Merger</button>
+        <button class="tab" data-tab="dashboard">Simulation Selection</button>
+        <button class="tab" data-tab="implementation">Implementation</button>
+      </nav>
+
+      <!-- Tab panels -->
+      <div id="panel-merger" class="panel active">
+        <canvas id="merger-canvas"></canvas>
+        <div id="waveform-strip">
+          <canvas id="waveform-canvas"></canvas>
+        </div>
+        <div id="evolution-strip">
+          <canvas id="evolution-canvas"></canvas>
+        </div>
+        <div id="merger-controls">
+          <button id="play-btn">&#9654;</button>
+          <input type="range" id="time-slider" min="0" max="1" step="0.0005" value="0" />
+          <span id="time-display">t = 0.0 M</span><span class="param-tooltip" title="Time in geometrized units (G = c = 1). 1 M &#8776; 4.93 &#215; 10&#8315;&#8310; s &#215; (M_total / M_&#x2609;). For a 60 M_&#x2609; binary, 10,000 M &#8776; 0.3 s.">?</span>
+          <label id="mesh-toggle">
+            <input type="checkbox" id="mesh-checkbox" checked />
+            <span>Mesh</span>
+          </label>
+          <label id="trail-toggle">
+            <input type="checkbox" id="trail-checkbox" checked />
+            <span>Trails</span>
+          </label>
+          <label id="sound-toggle">
+            <input type="checkbox" id="sound-checkbox" />
+            <span>Sound</span>
+          </label>
+          <div id="lensing-control">
+            <span class="param-label">Lensing</span>
+            <input type="range" id="lensing-slider" min="0" max="0.003" step="0.0001" value="0.0005" />
+          </div>
+          <div id="speed-control">
+            <span class="param-label">Speed</span>
+            <select id="speed-select">
+              <option value="5">5 s</option>
+              <option value="15">15 s</option>
+              <option value="30" selected>30 s</option>
+              <option value="60">60 s</option>
+              <option value="120">2 min</option>
+            </select>
+          </div>
+          <button id="reset-cam-btn">Reset View</button>
+        </div>
+      </div>
+
+      <div id="panel-dashboard" class="panel">
+        <div id="catalog-list"></div>
+      </div>
+
+      <div id="panel-implementation" class="panel">
+        <div id="implementation-content">
+
+          <div class="impl-section">
+            <h2>What are Gravitational Waves?</h2>
+            <p>
+              In Einstein's General Theory of Relativity, gravity is not a force but the
+              curvature of spacetime caused by mass and energy. When massive objects
+              accelerate &mdash; for instance, two black holes spiraling toward each other &mdash;
+              they produce <strong>ripples in the fabric of spacetime</strong> that propagate outward
+              at the speed of light. These ripples are <em>gravitational waves</em>.
+            </p>
+            <p>
+              A gravitational wave stretches space in one direction while compressing it
+              in the perpendicular direction, alternating as the wave passes. This effect
+              is described by the <strong>strain</strong> $h$, the fractional change in
+              distance between two points:
+            </p>
+            <p class="formula">
+              $$h = \frac{\Delta L}{L}$$
+            </p>
+            <p>
+              For the waves detected by LIGO from merging stellar-mass black holes,
+              $h \sim 10^{-21}$ &mdash; a change of less than one-thousandth the diameter
+              of a proton across LIGO's 4 km arms.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Binary Black Hole Mergers</h2>
+            <p>
+              A binary black hole system evolves through three phases:
+            </p>
+            <ul>
+              <li><strong>Inspiral:</strong> The two black holes orbit each other, gradually
+                losing energy to gravitational radiation. The orbit shrinks, the orbital
+                frequency increases, and the wave amplitude grows &mdash; producing the
+                characteristic <em>chirp</em> signal.</li>
+              <li><strong>Merger:</strong> The black holes plunge together and form a single,
+                highly distorted black hole. This is the peak of gravitational wave emission.</li>
+              <li><strong>Ringdown:</strong> The remnant black hole settles into a stable
+                Kerr black hole by radiating away its distortions as damped gravitational
+                waves, analogous to a struck bell.</li>
+            </ul>
+          </div>
+
+          <div class="impl-section">
+            <h2>Key Physical Quantities</h2>
+
+            <h3>Strain modes $h^{\ell m}$</h3>
+            <p>
+              The gravitational wave signal is decomposed into <strong>spin-weighted
+              spherical harmonics</strong> ${}_{-2}Y^{\ell m}(\theta, \phi)$, analogous to
+              how sound can be decomposed into frequencies. Each mode $h^{\ell m}(t)$ is a
+              complex time series capturing both the amplitude and phase of oscillation for
+              a given angular pattern. The dominant mode is $(\ell, m) = (2,2)$, which carries
+              most of the radiated energy and has a quadrupole (four-lobed) angular pattern.
+            </p>
+
+            <h3>Mass ratio $q$</h3>
+            <p>
+              The ratio of the heavier mass to the lighter: $q = m_1 / m_2 \geq 1$. Equal-mass
+              systems ($q = 1$) are symmetric; large mass ratios produce asymmetric waveforms
+              and significant gravitational recoil of the remnant.
+            </p>
+
+            <h3>Effective spin $\chi_{\text{eff}}$</h3>
+            <p>
+              A mass-weighted combination of the spin components along the orbital angular
+              momentum $\hat{L}$:
+            </p>
+            <p class="formula">
+              $$\chi_{\text{eff}} = \frac{m_1 \, \vec{\chi}_1 + m_2 \, \vec{\chi}_2}{m_1 + m_2} \cdot \hat{L}$$
+            </p>
+            <p>
+              where $\vec{\chi}_i = \vec{S}_i / m_i^2$ is the dimensionless spin vector of
+              each black hole ($|\vec{\chi}| \leq 1$, with 1 being maximal Kerr spin).
+              Positive $\chi_{\text{eff}}$ means spins aligned with the orbit (longer inspiral);
+              negative means anti-aligned (shorter inspiral).
+            </p>
+
+            <h3>Christodoulou mass</h3>
+            <p>
+              The <em>irreducible</em> mass of a black hole, defined from the area of its
+              apparent horizon:
+            </p>
+            <p class="formula">
+              $$M_{\text{Chr}}^2 = M_{\text{irr}}^2 + \frac{S^2}{4\,M_{\text{irr}}^2}$$
+            </p>
+            <p>
+              where $S$ is the spin angular momentum and $M_{\text{irr}} = \sqrt{A / 16\pi}$
+              with $A$ the horizon area. This is a quasi-local measure of each black hole's
+              mass that accounts for its rotational energy.
+            </p>
+
+            <h3>Eccentricity $e$</h3>
+            <p>
+              Orbital eccentricity at the reference time. Most SXS simulations start with
+              quasi-circular orbits ($e \approx 0$); a few model eccentric inspirals ($e > 0.1$).
+              Real astrophysical binaries are expected to have circularized by the time they
+              enter the LIGO band, but dynamical formation channels can produce eccentric mergers.
+            </p>
+
+            <h3>ADM energy and angular momentum</h3>
+            <p>
+              The Arnowitt-Deser-Misner (ADM) energy $E_{\text{ADM}}$ and angular momentum
+              $\vec{J}_{\text{ADM}}$ are the total energy and angular momentum of the
+              spacetime, measured at spatial infinity. They are conserved (in vacuum) and
+              serve as the "budget" from which gravitational waves carry away energy:
+              $E_{\text{rad}} = E_{\text{ADM}} - M_{\text{remnant}}$.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Units</h2>
+            <p>
+              All simulations use <strong>geometrized units</strong> where $G = c = 1$,
+              and lengths and times are measured in units of the total mass $M = m_1 + m_2$.
+              To convert to physical units:
+            </p>
+            <p class="formula">
+              $$1\,M = \frac{G\,M_{\text{total}}}{c^2} \approx 4.93 \times 10^{-6}\,\text{s} \times \frac{M_{\text{total}}}{M_\odot}$$
+            </p>
+            <p>
+              For a $60\,M_\odot$ binary ($30 + 30$), a simulation spanning $10{,}000\,M$
+              corresponds to $\sim 0.3$ seconds of real time.
+            </p>
+          </div>
+
+          <div class="impl-section impl-divider"></div>
+
+          <div class="impl-section">
+            <h2>Data Source</h2>
+            <p>
+              Simulations are from the <strong>SXS (Simulating eXtreme Spacetimes)</strong> catalog
+              (<a href="https://data.black-holes.org" target="_blank">data.black-holes.org</a>),
+              the largest public collection of numerical relativity binary black hole simulations
+              with 4,150+ configurations. Data is accessed via the
+              <code>sxs</code> Python package (v2025.0).
+            </p>
+            <p>
+              Each simulation provides: horizon trajectories (inertial frame positions),
+              Christodoulou masses, dimensionless spins, and the gravitational wave strain
+              $h(t)$ decomposed into spin-weighted spherical harmonic modes
+              $h^{\ell,m}$. We use the dominant $(\ell, m) = (2,2)$ mode by default.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Waveform Processing</h2>
+            <p>
+              SXS simulations use <strong>adaptive time-stepping</strong> &mdash; the raw data
+              has far more samples near merger than during inspiral. Naive uniform downsampling
+              causes index-fraction $\neq$ time-fraction, making the waveform peak appear at the
+              wrong animation time.
+            </p>
+            <p>
+              We use <strong>frequency-adaptive resampling</strong>: the time grid is constructed
+              to guarantee ~20 samples per gravitational wave cycle everywhere, by integrating
+            </p>
+            <p class="formula">
+              $$\Delta t_{\text{desired}}(t) = \frac{1}{20 \cdot f_{\text{GW}}(t)}$$
+            </p>
+            <p>
+              and inverting the cumulative sample-count function. This gives sparse sampling
+              during the slow inspiral and dense sampling near merger.
+            </p>
+            <p>
+              Critically, we interpolate the <strong>amplitude $A(t)$ and phase
+              $\Phi(t)$</strong> (both smooth functions) rather than the oscillating
+              $h_+(t)$ directly, then reconstruct
+            </p>
+            <p class="formula">
+              $$h(t) = A(t) \cdot \cos\!\bigl(\Phi(t)\bigr)$$
+            </p>
+            <p>
+              This avoids aliasing artifacts near merger where the GW frequency is high.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Spacetime Mesh Deformation</h2>
+            <p>
+              The mesh represents the orbital plane deformed by both the <strong>near-zone
+              gravitational potential</strong> and <strong>far-zone gravitational wave radiation</strong>.
+            </p>
+            <h3>Near zone (gravity wells)</h3>
+            <p>
+              Each black hole creates a funnel-shaped depression following a softened Newtonian
+              potential enveloped by a Gaussian to keep the wells localized:
+            </p>
+            <p class="formula">
+              $$\Phi(r) \propto -\frac{M}{r + r_{\text{soft}}} \, \exp\!\left(-\frac{r^2}{\sigma^2}\right)$$
+            </p>
+            <h3>Wave zone (GW ripples)</h3>
+            <p>
+              In the TT (transverse-traceless) gauge, the $+$ polarization of gravitational waves
+              from a binary is:
+            </p>
+            <p class="formula">
+              $$h_+(r, \varphi, t) = \frac{A(t_{\text{ret}})}{r} \, \cos\!\bigl(2\varphi - \Phi(t_{\text{ret}})\bigr)$$
+            </p>
+            <p>
+              where $t_{\text{ret}} = t - r/c$ is the retarded time,
+              $A$ is the waveform amplitude, and $\Phi$ is the cumulative
+              GW phase (integrated from the instantaneous frequency). The
+              $\cos(2\varphi - \Phi_{\text{ret}})$ pattern naturally creates
+              two-arm spirals that wind outward at the speed of light.
+            </p>
+            <p>
+              The near and wave zones are blended with a smooth
+              $\text{smoothstep}$ transition at $r \approx 2.5 \times d$,
+              where $d$ is the binary separation.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Gravitational Lensing</h2>
+            <p>
+              A post-processing screen-space shader simulates gravitational lensing. The scene
+              is first rendered to a texture, then a fullscreen quad samples this texture with
+              UV displacements near each black hole's screen position:
+            </p>
+            <p class="formula">
+              $$\delta\mathbf{UV} \propto -\frac{M \, s}{|\Delta\mathbf{UV}| + \epsilon}$$
+            </p>
+            <p>
+              where $s$ is a user-controllable strength parameter and $\epsilon$ is a
+              softening constant.  A $\text{smoothstep}$ falloff confines the effect to
+              the vicinity of each black hole.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Audio Sonification</h2>
+            <p>
+              The chirp is synthesized from the waveform's amplitude envelope
+              $A(t)$ and GW frequency $f_{\text{GW}}(t)$:
+            </p>
+            <p class="formula">
+              $$\text{audio}(t) = A(t) \cdot \sin\!\left(\int_0^t 2\pi \, f_{\text{audio}}(t')\, dt'\right)$$
+            </p>
+            <p>
+              The GW frequency is mapped linearly into $[40\,\text{Hz},\, 800\,\text{Hz}]$.
+              The audio buffer is generated server-side at the exact target playback duration,
+              so no pitch-shifting artifacts occur. The envelope peak is guaranteed to align
+              with the waveform amplitude peak (verified by automated tests).
+            </p>
+            <p>
+              <strong>Doppler modulation:</strong> A Web Audio BiquadFilterNode shifts
+              the perceived pitch based on the radial velocity of the binary center-of-mass
+              relative to the camera, following
+              $f_{\text{obs}} = f_{\text{emit}} / (1 - v_r / c_{\text{eff}})$.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Radiated Energy</h2>
+            <p>
+              The cumulative radiated energy is computed from the GW strain energy flux:
+            </p>
+            <p class="formula">
+              $$E_{\text{rad}}(t) = \frac{1}{16\pi} \int_0^t |\dot{h}(t')|^2 \, dt'$$
+            </p>
+            <p>
+              This integral is normalized so the final value matches the known mass deficit
+              $M_{\text{ADM}} - M_{\text{remnant}}$ from the simulation metadata.
+              The evolution plot uses a $\sqrt{\cdot}$ scale to reveal the gradual inspiral buildup.
+            </p>
+          </div>
+
+          <div class="impl-section">
+            <h2>Merger Transition</h2>
+            <p>
+              At the common horizon formation time $t_{\text{merger}}$ (from the SXS data),
+              the two individual black holes merge into a single remnant:
+            </p>
+            <ul>
+              <li>Over $\Delta t = 15\,M$, the two BH sprites shrink, fade, and slide toward
+                the remnant position from the common horizon ($\texttt{horizons.C}$) trajectory</li>
+              <li>A remnant BH simultaneously fades in at the common horizon location</li>
+              <li>A brief glow flash ($\sim 50\,M$ decay) simulates the ringdown energy burst</li>
+              <li>Post-merger, the remnant wobbles along the actual SXS ringdown trajectory,
+                with mass $M_{\text{rem}}$ settling from ${\sim}0.86$ to ${\sim}0.95\,M$</li>
+            </ul>
+          </div>
+
+          <div class="impl-section">
+            <h2>Technology</h2>
+            <p>
+              <strong>Backend:</strong> Python 3.12, FastAPI, <code>sxs</code> package, NumPy, SciPy.
+              Managed with <code>uv</code>.
+            </p>
+            <p>
+              <strong>Frontend:</strong> Three.js (WebGL), Vite, Web Audio API. Custom GLSL shaders
+              for lensing + bloom (UnrealBloomPass). Canvas 2D for waveform and evolution plots.
+            </p>
+            <p>
+              <strong>Star background:</strong> Yale Bright Star Catalog (~9,000 stars) with
+              B-V color index $\to$ RGB mapping and magnitude-based brightness scaling.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
