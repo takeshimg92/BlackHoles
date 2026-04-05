@@ -1,5 +1,5 @@
 import './style.css';
-import { fetchCatalog, fetchSimulation, fetchWaveform, fetchTrajectories, fetchAudio, fetchEvolution } from './api.js';
+import { fetchCatalog, fetchSimulation, fetchWaveform, fetchTrajectories, fetchEvolution } from './api.js';
 import { setupTabs, setupTimeSlider, setupPlayButton, setupMeshToggle, setupSoundToggle, setupTrailToggle, setupCarousel, setupMeshBrightness, setupMeshResolution, setupMeshColor, setupSpinAxisToggle, setupLensingSlider, setupSpeedControl, setupCameraReset, updateInfoBar } from './ui/controls.js';
 import { MergerScene } from './scene/merger.js';
 import { WaveformPlot } from './waveform/plot.js';
@@ -17,7 +17,6 @@ let chirpAudio = null;
 let catalogBrowser = null;
 let animationId = null;
 let playing = false;
-let currentSimId = DEFAULT_SIM;
 let currentPlaybackDuration = 30;
 
 function showLoading(simId) {
@@ -39,8 +38,6 @@ async function loadSimulation(simId) {
   showLoading(simId);
 
   try {
-    currentSimId = simId;
-
     // Load sequentially so (a) the cache serves subsequent sxs.load()
     // calls instantly instead of 5 parallel downloads, and (b) the
     // user sees progress at each step.
@@ -52,9 +49,6 @@ async function loadSimulation(simId) {
 
     updateLoadingStep(`Processing waveform...`);
     const waveform = await fetchWaveform(simId);
-
-    updateLoadingStep(`Generating audio...`);
-    const audio = await fetchAudio(simId, 2, 2, currentPlaybackDuration);
 
     updateLoadingStep(`Computing evolution...`);
     const evolution = await fetchEvolution(simId);
@@ -71,8 +65,8 @@ async function loadSimulation(simId) {
     // Update waveform plot
     waveformPlot.setData(waveform);
 
-    // Update audio
-    await chirpAudio.loadAudioData(audio);
+    // Synthesize audio client-side (no backend needed)
+    chirpAudio.synthesize(waveform, trajectories, currentPlaybackDuration);
 
     // Update evolution plot
     evolutionPlot.setData(evolution);
@@ -235,7 +229,11 @@ async function init() {
     mergerScene.setTrailsVisible(visible);
   });
 
-  setupCarousel();
+  setupCarousel((slide) => {
+    // Trigger resize on the newly visible canvas
+    if (slide === 'waveform') waveformPlot._handleResize();
+    if (slide === 'evolution') evolutionPlot._handleResize();
+  });
 
   setupMeshBrightness((value) => {
     mergerScene.setMeshBrightness(value);
@@ -261,15 +259,12 @@ async function init() {
     mergerScene.resetCamera();
   });
 
-  setupSpeedControl(async (seconds) => {
+  setupSpeedControl((seconds) => {
     currentPlaybackDuration = seconds;
     mergerScene.playbackDuration = seconds;
-    // Re-fetch audio at the new duration so frequencies stay audible
-    try {
-      const audio = await fetchAudio(currentSimId, 2, 2, seconds);
-      await chirpAudio.loadAudioData(audio);
-    } catch (err) {
-      console.error('Failed to reload audio:', err);
+    // Re-synthesize audio at the new duration (instant, no backend)
+    if (mergerScene.waveformData && mergerScene.trajectoryData) {
+      chirpAudio.synthesize(mergerScene.waveformData, mergerScene.trajectoryData, seconds);
     }
   });
 
@@ -279,8 +274,8 @@ async function init() {
   // Load default simulation first (preloaded data — no backend needed)
   await loadSimulation(DEFAULT_SIM);
 
-  // Then load catalog in the background (needs backend, may take seconds)
-  fetchCatalog({ maxResults: 100, minOrbits: 5 })
+  // Load catalog from static JSON
+  fetchCatalog()
     .then(catalog => catalogBrowser.render(catalog))
     .catch(err => console.error('Failed to load catalog:', err));
 }

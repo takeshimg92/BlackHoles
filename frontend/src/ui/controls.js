@@ -95,7 +95,7 @@ export function setupTrailToggle(onChange) {
   });
 }
 
-export function setupCarousel() {
+export function setupCarousel(onSlideChange) {
   const slides = document.querySelectorAll('.carousel-slide');
   const dots = document.querySelectorAll('.carousel-dots .dot');
   const prevBtn = document.querySelector('.carousel-prev');
@@ -104,6 +104,7 @@ export function setupCarousel() {
   function showSlide(name) {
     slides.forEach(s => s.classList.toggle('active', s.dataset.slide === name));
     dots.forEach(d => d.classList.toggle('active', d.dataset.slide === name));
+    if (onSlideChange) onSlideChange(name);
   }
 
   function currentIndex() {
