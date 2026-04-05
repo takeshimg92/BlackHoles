@@ -228,36 +228,150 @@ html, body {
   display: block;
 }
 
-/* Waveform strip below 3D view */
-#waveform-strip {
-  height: 150px;
-  min-height: 150px;
+/* Data carousel (waveform / evolution strips) */
+#data-carousel {
+  position: relative;
+  height: 140px;
+  min-height: 140px;
   width: 100%;
   border-top: 1px solid var(--border);
   background: var(--bg-primary);
 }
 
-#waveform-strip canvas, #evolution-strip canvas {
+.carousel-slides {
+  width: 100%;
+  height: 100%;
+}
+
+.carousel-slide {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.carousel-slide.active {
+  display: block;
+}
+
+.carousel-slide canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-#evolution-strip {
-  height: 120px;
-  min-height: 120px;
-  width: 100%;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 22px;
+  height: 32px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  z-index: 5;
+  opacity: 0.5;
+  transition: opacity 0.2s;
 }
 
-#merger-controls {
+.carousel-btn:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.carousel-prev { left: 4px; }
+.carousel-next { right: 4px; }
+
+.carousel-dots {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 20px;
+  gap: 6px;
+  z-index: 5;
+}
+
+.carousel-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.carousel-dots .dot.active {
+  background: var(--accent);
+}
+
+/* Controls — 3-column grid */
+#merger-controls {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0;
+  padding: 0;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
+}
+
+.ctrl-col {
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-right: 1px solid var(--border);
+}
+
+.ctrl-col:last-child {
+  border-right: none;
+}
+
+.ctrl-playback {
+  gap: 6px;
+}
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ctrl-heading {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.ctrl-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctrl-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 65px;
+}
+
+.ctrl-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ctrl-toggle input {
+  accent-color: var(--accent);
 }
 
 #time-slider {
@@ -301,31 +415,9 @@ html, body {
   background: var(--accent);
 }
 
-/* Toggles */
-#mesh-toggle, #sound-toggle, #trail-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
-}
-
-#mesh-toggle input, #sound-toggle input, #trail-toggle input {
-  accent-color: var(--accent);
-}
-
-/* Lensing slider */
-#lensing-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-#lensing-slider {
-  width: 60px;
+/* Slider styling (shared) */
+.ctrl-slider-row input[type="range"] {
+  width: 70px;
   -webkit-appearance: none;
   appearance: none;
   height: 3px;
@@ -334,7 +426,7 @@ html, body {
   outline: none;
 }
 
-#lensing-slider::-webkit-slider-thumb {
+.ctrl-slider-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 10px;
   height: 10px;
@@ -343,15 +435,7 @@ html, body {
   cursor: pointer;
 }
 
-/* Speed control */
-#speed-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-#speed-select {
+.ctrl-slider-row select {
   background: var(--bg-panel);
   color: var(--text-primary);
   border: 1px solid var(--border);

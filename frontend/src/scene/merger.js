@@ -233,6 +233,14 @@ export class MergerScene {
     if (this.spacetimeMesh) this.spacetimeMesh.setVisible(visible);
   }
 
+  setMeshBrightness(value) {
+    if (this.spacetimeMesh) this.spacetimeMesh.setBrightness(value);
+  }
+
+  setMeshResolution(segs) {
+    if (this.spacetimeMesh) this.spacetimeMesh.setResolution(segs);
+  }
+
   setTrailsVisible(visible) {
     if (this.trailA) this.trailA.visible = visible;
     if (this.trailB) this.trailB.visible = visible;
@@ -441,6 +449,9 @@ export class MergerScene {
     this.update();
     this.controls.update();
     updateStarField(1); // dt=1 frame
+
+    // Fade mesh when camera is nearly edge-on
+    if (this.spacetimeMesh) this.spacetimeMesh.updateCameraFade(this.camera);
 
     if (this.lensingPass) {
       this.lensingPass.render(this.renderer, this.scene, this.camera);

@@ -95,6 +95,53 @@ export function setupTrailToggle(onChange) {
   });
 }
 
+export function setupCarousel() {
+  const slides = document.querySelectorAll('.carousel-slide');
+  const dots = document.querySelectorAll('.carousel-dots .dot');
+  const prevBtn = document.querySelector('.carousel-prev');
+  const nextBtn = document.querySelector('.carousel-next');
+
+  function showSlide(name) {
+    slides.forEach(s => s.classList.toggle('active', s.dataset.slide === name));
+    dots.forEach(d => d.classList.toggle('active', d.dataset.slide === name));
+  }
+
+  function currentIndex() {
+    return [...slides].findIndex(s => s.classList.contains('active'));
+  }
+
+  prevBtn.addEventListener('click', () => {
+    const i = (currentIndex() - 1 + slides.length) % slides.length;
+    showSlide(slides[i].dataset.slide);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    const i = (currentIndex() + 1) % slides.length;
+    showSlide(slides[i].dataset.slide);
+  });
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => showSlide(dot.dataset.slide));
+  });
+}
+
+export function setupMeshBrightness(onChange) {
+  const slider = document.getElementById('mesh-brightness-slider');
+  slider.addEventListener('input', () => {
+    if (onChange) onChange(parseFloat(slider.value));
+  });
+  onChange(parseFloat(slider.value));
+}
+
+export function setupMeshResolution(onChange) {
+  const slider = document.getElementById('mesh-resolution-slider');
+  // Only fire on release (change), not on every drag movement,
+  // because rebuilding the mesh geometry is expensive.
+  slider.addEventListener('change', () => {
+    if (onChange) onChange(parseInt(slider.value));
+  });
+}
+
 export function setupLensingSlider(onChange) {
   const slider = document.getElementById('lensing-slider');
   slider.addEventListener('input', () => {

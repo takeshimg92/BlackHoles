@@ -1,6 +1,6 @@
 import './style.css';
 import { fetchCatalog, fetchSimulation, fetchWaveform, fetchTrajectories, fetchAudio, fetchEvolution } from './api.js';
-import { setupTabs, setupTimeSlider, setupPlayButton, setupMeshToggle, setupSoundToggle, setupTrailToggle, setupLensingSlider, setupSpeedControl, setupCameraReset, updateInfoBar } from './ui/controls.js';
+import { setupTabs, setupTimeSlider, setupPlayButton, setupMeshToggle, setupSoundToggle, setupTrailToggle, setupCarousel, setupMeshBrightness, setupMeshResolution, setupLensingSlider, setupSpeedControl, setupCameraReset, updateInfoBar } from './ui/controls.js';
 import { MergerScene } from './scene/merger.js';
 import { WaveformPlot } from './waveform/plot.js';
 import { ChirpAudio } from './waveform/audio.js';
@@ -229,6 +229,16 @@ async function init() {
 
   setupTrailToggle((visible) => {
     mergerScene.setTrailsVisible(visible);
+  });
+
+  setupCarousel();
+
+  setupMeshBrightness((value) => {
+    mergerScene.setMeshBrightness(value);
+  });
+
+  setupMeshResolution((segs) => {
+    mergerScene.setMeshResolution(segs);
   });
 
   setupLensingSlider((value) => {
