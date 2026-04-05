@@ -7,7 +7,7 @@
  */
 
 const COLUMNS = [
-  { key: 'mass_ratio', label: 'q', tooltip: 'Mass ratio', fmt: v => v?.toFixed(3), color: '#4a7cff' },
+  { key: 'mass_ratio', label: 'q', tooltip: 'Mass ratio', fmt: v => v?.toFixed(2), color: '#4a7cff' },
   { key: 'eccentricity', label: 'e', tooltip: 'Eccentricity', fmt: v => v?.toExponential(1), color: '#44bbff' },
   { key: 'num_orbits', label: 'Orbits', tooltip: 'Number of orbits', fmt: v => v?.toFixed(1), color: '#66dd88' },
   { key: 'chi_eff', label: '\u03C7\u2091\u2092\u2092', tooltip: 'Effective spin', fmt: v => v?.toFixed(3), color: '#ff8844', signed: true },

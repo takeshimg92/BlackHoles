@@ -128,7 +128,7 @@ export function updateInfoBar(metadata) {
   title.textContent = metadata.sim_id;
 
   const items = [
-    { label: 'Mass ratio (q)', value: metadata.mass_ratio?.toFixed(4), tooltip: 'Ratio m\u2081/m\u2082 of the heavier to lighter black hole' },
+    { label: 'Mass ratio (q)', value: metadata.mass_ratio?.toFixed(2), tooltip: 'Ratio m\u2081/m\u2082 of the heavier to lighter black hole' },
     { label: 'Eccentricity (e)', value: metadata.eccentricity?.toFixed(5), tooltip: 'Orbital eccentricity at reference time (0 = circular)' },
     { label: 'Orbits', value: metadata.num_orbits?.toFixed(1), tooltip: 'Number of orbits from reference time to merger' },
     { label: 'Effective spin (\u03C7<sub>eff</sub>)', value: metadata.chi_eff?.toFixed(4), tooltip: 'Mass-weighted projection of spins onto the orbital angular momentum' },
