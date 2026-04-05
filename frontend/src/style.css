@@ -702,3 +702,192 @@ html, body {
 .about-links a {
   font-size: 12px;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  /* Viewport fix for mobile browsers */
+  html, body {
+    height: 100dvh;
+  }
+
+  #app {
+    height: 100dvh;
+  }
+
+  /* Info bar — compact */
+  #info-bar-top {
+    padding: 6px 12px 2px;
+  }
+
+  #app-title {
+    font-size: 12px;
+  }
+
+  #info-bar-bottom {
+    padding: 2px 12px 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  #sim-title {
+    font-size: 11px;
+  }
+
+  .param {
+    font-size: 10px;
+  }
+
+  /* Tabs — horizontal scroll */
+  #tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    padding: 6px 14px;
+    font-size: 10px;
+  }
+
+  /* 3D canvas — ensure minimum height */
+  #merger-canvas {
+    min-height: 200px;
+  }
+
+  /* Data carousel — shorter on mobile */
+  #data-carousel {
+    height: 100px;
+    min-height: 100px;
+  }
+
+  /* Controls — stack vertically */
+  #merger-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 10px;
+  }
+
+  .ctrl-col {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 4px 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .ctrl-col:last-child {
+    border-bottom: none;
+  }
+
+  .ctrl-heading {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .ctrl-playback .ctrl-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ctrl-slider-row {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .ctrl-slider-row input[type="range"] {
+    flex: 1;
+    width: auto;
+  }
+
+  .ctrl-label {
+    min-width: 55px;
+    font-size: 10px;
+  }
+
+  #time-display {
+    min-width: auto;
+    font-size: 10px;
+  }
+
+  #play-btn, #reset-cam-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .ctrl-toggle {
+    font-size: 10px;
+  }
+
+  .ctrl-slider-row select {
+    font-size: 10px;
+  }
+
+  /* Catalog — tighter grid */
+  .cat-header, .cat-row {
+    grid-template-columns: 65px repeat(6, 1fr);
+    font-size: 10px;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .cat-sim-name {
+    font-size: 9px;
+  }
+
+  .cat-bar-cell {
+    height: 16px;
+  }
+
+  /* Implementation — full width */
+  #implementation-content {
+    max-width: 100%;
+    padding: 20px 14px 40px;
+  }
+
+  .impl-section h2 {
+    font-size: 14px;
+  }
+
+  .impl-section p, .impl-section li {
+    font-size: 12px;
+  }
+
+  .formula {
+    padding: 8px 12px;
+    overflow-x: auto;
+  }
+
+  .formula .katex {
+    font-size: 0.95em;
+  }
+
+  /* About — full width */
+  #about-content {
+    max-width: 100%;
+    padding: 24px 14px 40px;
+  }
+
+  /* Tooltips — fit on screen */
+  .param-tooltip:hover::after {
+    white-space: normal;
+    max-width: 200px;
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+
+  /* Loading overlay */
+  .loading-text {
+    font-size: 12px;
+  }
+}
