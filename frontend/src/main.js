@@ -1,6 +1,6 @@
 import './style.css';
 import { fetchCatalog, fetchSimulation, fetchWaveform, fetchTrajectories, fetchAudio, fetchEvolution } from './api.js';
-import { setupTabs, setupTimeSlider, setupPlayButton, setupMeshToggle, setupSoundToggle, setupTrailToggle, setupCarousel, setupMeshBrightness, setupMeshResolution, setupLensingSlider, setupSpeedControl, setupCameraReset, updateInfoBar } from './ui/controls.js';
+import { setupTabs, setupTimeSlider, setupPlayButton, setupMeshToggle, setupSoundToggle, setupTrailToggle, setupCarousel, setupMeshBrightness, setupMeshResolution, setupMeshColor, setupSpinAxisToggle, setupLensingSlider, setupSpeedControl, setupCameraReset, updateInfoBar } from './ui/controls.js';
 import { MergerScene } from './scene/merger.js';
 import { WaveformPlot } from './waveform/plot.js';
 import { ChirpAudio } from './waveform/audio.js';
@@ -223,8 +223,12 @@ async function init() {
     mergerScene.setMeshVisible(visible);
   });
 
+  chirpAudio.setEnabled(true); // sound on by default
   setupSoundToggle((enabled) => {
     chirpAudio.setEnabled(enabled);
+    if (enabled && playing) {
+      chirpAudio.play(mergerScene.getTimeFraction());
+    }
   });
 
   setupTrailToggle((visible) => {
@@ -239,6 +243,14 @@ async function init() {
 
   setupMeshResolution((segs) => {
     mergerScene.setMeshResolution(segs);
+  });
+
+  setupMeshColor((hue) => {
+    mergerScene.setMeshColorHue(hue);
+  });
+
+  setupSpinAxisToggle((visible) => {
+    mergerScene.setSpinAxesVisible(visible);
   });
 
   setupLensingSlider((value) => {

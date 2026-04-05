@@ -142,6 +142,21 @@ export function setupMeshResolution(onChange) {
   });
 }
 
+export function setupMeshColor(onChange) {
+  const slider = document.getElementById('mesh-color-slider');
+  slider.addEventListener('input', () => {
+    if (onChange) onChange(parseFloat(slider.value));
+  });
+  onChange(parseFloat(slider.value));
+}
+
+export function setupSpinAxisToggle(onChange) {
+  const checkbox = document.getElementById('spin-axis-checkbox');
+  checkbox.addEventListener('change', () => {
+    if (onChange) onChange(checkbox.checked);
+  });
+}
+
 export function setupLensingSlider(onChange) {
   const slider = document.getElementById('lensing-slider');
   slider.addEventListener('input', () => {

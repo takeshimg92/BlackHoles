@@ -69,7 +69,7 @@
             <div class="ctrl-row">
               <label class="ctrl-toggle"><input type="checkbox" id="mesh-checkbox" checked /><span>Mesh</span></label>
               <label class="ctrl-toggle"><input type="checkbox" id="trail-checkbox" checked /><span>Trails</span></label>
-              <label class="ctrl-toggle"><input type="checkbox" id="sound-checkbox" /><span>Sound</span></label>
+              <label class="ctrl-toggle"><input type="checkbox" id="sound-checkbox" checked /><span>Sound</span></label>
             </div>
           </div>
           <div class="ctrl-col ctrl-mesh">
@@ -80,8 +80,13 @@
             </div>
             <div class="ctrl-slider-row">
               <span class="ctrl-label">Resolution</span>
-              <input type="range" id="mesh-resolution-slider" min="40" max="160" step="10" value="80" />
+              <input type="range" id="mesh-resolution-slider" min="40" max="300" step="10" value="80" />
             </div>
+            <div class="ctrl-slider-row">
+              <span class="ctrl-label">Color</span>
+              <input type="range" id="mesh-color-slider" min="0" max="360" step="5" value="220" />
+            </div>
+            <label class="ctrl-toggle"><input type="checkbox" id="spin-axis-checkbox" /><span>Spin axes</span></label>
           </div>
           <div class="ctrl-col ctrl-view">
             <span class="ctrl-heading">Controls</span>
@@ -270,6 +275,37 @@
               can only increase.
             </p>
 
+            <h3>Dimensionless spin $\vec{\chi}$</h3>
+            <p>
+              Each black hole carries an intrinsic angular momentum (spin) $\vec{S}$.
+              The <strong>dimensionless spin vector</strong> $\vec{\chi} = \vec{S} / M^2$
+              encodes both the magnitude and direction of the spin, where $M$ is the
+              black hole's mass. The Kerr bound $|\vec{\chi}| \leq 1$ sets the maximum
+              spin for a black hole; $|\vec{\chi}| = 0$ is a non-spinning (Schwarzschild)
+              black hole, while $|\vec{\chi}| = 1$ is a maximally spinning (extremal Kerr)
+              black hole.
+            </p>
+            <p>
+              The spin vector has three components $(\chi_x, \chi_y, \chi_z)$ in the
+              inertial frame. The component along the orbital angular momentum
+              ($\chi_z$ for face-on orbits) determines the effective spin parameter
+              $\chi_{\text{eff}}$ and directly affects the inspiral rate. <strong>Aligned</strong>
+              spins ($\chi_z > 0$) produce a "hang-up" effect that extends the inspiral;
+              <strong>anti-aligned</strong> spins ($\chi_z &lt; 0$) cause the binary to plunge
+              faster.
+            </p>
+            <p>
+              Components perpendicular to the orbital angular momentum ($\chi_x$, $\chi_y$)
+              cause <strong>spin precession</strong> — the orbital plane wobbles over time,
+              producing modulations in the waveform amplitude and phase.
+            </p>
+            <p>
+              The physical angular momentum is recovered via $\vec{S} = \vec{\chi} \, M^2$.
+              For the SXS:BBH:0304 simulation: $\vec{\chi}_A \approx (0, 0, +0.5)$ and
+              $\vec{\chi}_B \approx (0, 0, -0.5)$ — equal-magnitude spins pointing in
+              opposite directions along the orbital axis.
+            </p>
+
             <h3>Eccentricity $e$</h3>
             <p>
               Orbital eccentricity at the reference time. Most SXS simulations start with
@@ -388,6 +424,33 @@
           </div>
 
           <div class="impl-section">
+            <h2>Spin Visualization</h2>
+            <p>
+              Each black hole's spin is visualized as an <strong>arrow</strong> pointing
+              along the dimensionless spin vector $\vec{\chi}$, with length proportional
+              to the spin magnitude $|\vec{\chi}|$. The arrow originates from the black
+              hole's position and indicates the direction of the angular momentum axis.
+            </p>
+            <p>
+              The 3-component spin vectors $\vec{\chi}_A(t)$ and $\vec{\chi}_B(t)$ are
+              extracted from the SXS horizon data (<code>chi_inertial</code>) at each
+              time step and interpolated via cubic spline onto the animation time grid.
+              For non-precessing binaries like BBH:0304, the spin vectors remain nearly
+              constant; for precessing systems, they evolve over time as the spins
+              couple to the orbital angular momentum.
+            </p>
+            <h3>Merger transition</h3>
+            <p>
+              At merger, the individual spin arrows disappear. After the transition,
+              a single arrow appears at the remnant position showing the final remnant
+              spin $\vec{\chi}_{\text{rem}}$ (from the SXS metadata). For BBH:0304,
+              $|\vec{\chi}_{\text{rem}}| \approx 0.69$ — significantly larger than either
+              progenitor spin ($|\vec{\chi}| \approx 0.5$), because the orbital angular
+              momentum is converted into spin angular momentum of the remnant.
+            </p>
+          </div>
+
+          <div class="impl-section">
             <h2>Gravitational Lensing</h2>
             <p>
               A post-processing screen-space shader simulates gravitational lensing. The scene
@@ -466,7 +529,40 @@
               <li>A brief glow flash ($\sim 50\,M$ decay) simulates the ringdown energy burst</li>
               <li>Post-merger, the remnant wobbles along the actual SXS ringdown trajectory,
                 with mass $M_{\text{rem}}$ settling from ${\sim}0.86$ to ${\sim}0.95\,M$</li>
+              <li>Spin arrows: individual spin arrows disappear at merger; a single remnant
+                spin arrow appears post-merger, showing $\vec{\chi}_{\text{rem}}$</li>
             </ul>
+          </div>
+
+          <div class="impl-section">
+            <h2>Render Pipeline</h2>
+            <p>
+              The rendering uses a <strong>three-pass pipeline</strong> to combine
+              bloom, gravitational lensing, and overlay effects without artifacts:
+            </p>
+            <ul>
+              <li><strong>Pass 1 — Bloom:</strong> The main scene (black hole spheres,
+                spacetime mesh, stars, orbital trails) is rendered via an
+                <code>EffectComposer</code> with <code>UnrealBloomPass</code>.
+                The bloom applies a soft glow to bright elements (mesh wireframe,
+                stars) while leaving dark regions unaffected.</li>
+              <li><strong>Pass 2 — Lensing:</strong> The bloomed output texture is
+                sampled by a custom GLSL fullscreen quad that displaces UV coordinates
+                near each black hole's screen position, producing the gravitational
+                lensing distortion. The black hole spheres (rendered in Pass 1 as
+                opaque black geometry) create dark silhouettes that the lensing
+                warps the background around.</li>
+              <li><strong>Pass 3 — Overlay:</strong> A separate overlay scene containing
+                only the halo sprites is rendered on top of the lensed output with
+                <code>autoClear = false</code>. Because these sprites bypass the
+                lensing shader entirely, they remain undistorted — no "double ring"
+                artifact. The overlay also includes spin axis arrows.</li>
+            </ul>
+            <p>
+              This architecture ensures that the halos always appear exactly at each
+              black hole's position regardless of lensing strength, while the
+              background (stars, mesh) is properly distorted around them.
+            </p>
           </div>
 
           <div class="impl-section">

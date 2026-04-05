@@ -1,5 +1,77 @@
 # Changelog
 
+## 2026-04-05 — Spin, Render Pipeline, UI Polish
+
+### Three-Pass Render Pipeline
+
+Redesigned rendering to eliminate the "double halo" artifact:
+
+1. **Pass 1 (Bloom)**: Main scene (black sphere meshes, spacetime grid, stars,
+   trails) rendered via EffectComposer + UnrealBloomPass
+2. **Pass 2 (Lensing)**: Bloomed texture distorted by custom GLSL lensing shader
+   around each BH screen position. Black spheres create dark silhouettes that
+   the background warps around.
+3. **Pass 3 (Overlay)**: Separate overlay scene with halo sprites rendered on
+   top with `autoClear = false`. Halos bypass the lensing shader entirely —
+   no distortion, no double ring artifact.
+
+Black holes are now opaque 3D spheres (proper depth writing) + additive halo
+sprites in the overlay scene.
+
+### Spin Visualization
+
+- 3-component spin vectors (`chi_inertial`) extracted from SXS horizons,
+  cubic-spline interpolated onto trajectory time grid
+- Spin axis arrows (THREE.ArrowHelper) at each BH, length ∝ |χ|,
+  toggleable via "Spin axes" checkbox
+- Post-merger: individual arrows hidden, remnant spin arrow shown from
+  SXS metadata `remnant_dimensionless_spin`
+
+### Spacetime Mesh Improvements
+
+- Grid lines: only horizontal + vertical (no triangle diagonals) via
+  LineSegments2 + LineMaterial for GPU line width
+- Radial edge fade + camera grazing-angle fade to eliminate Moiré
+- Direct buffer updates (no per-frame allocation)
+- Resolution slider (40–300) with geometry rebuild on release
+- Color hue slider (0–360) using HSL-to-RGB conversion
+- Brightness slider with expanded range
+
+### UI Reorganization
+
+- Data carousel: waveform + evolution strips collapsed into single
+  140px carousel with arrow navigation and dot indicators
+- Controls: 3-column grid (Playback | Mesh | Controls)
+- Student-friendly parameter labels
+- Simulation selection: added |χ₁| and |χ₂| spin magnitude columns
+- Sound on by default
+- App title "Visualizing Black Hole Mergers"
+
+### Implementation Tab
+
+- Spin-weighted spherical harmonic expansion (TT gauge, h₊/h×, complex h)
+- Dimensionless spin χ (Kerr bound, aligned/anti-aligned effects, precession)
+- Christodoulou mass: why used, behavior during inspiral/merger/ringdown
+- Spin Visualization section (arrows, merger transition)
+- Render Pipeline section (three-pass architecture)
+- Frame Dragging section removed (mesh displacement reverted)
+- Doppler section removed (feature removed)
+- All formulas verified against current code
+
+### Bug Fixes
+
+- Lensing: soft saturation d_eff = d·r/(d+r) prevents ring artifacts
+  (verified by 137 parametrized monotonicity tests)
+- Audio: sound toggle mid-playback now starts chirp immediately
+- Time slider: pause on drag, resume on release
+- Loading: default sim loads from preloaded data before catalog
+- Preloaded content-type check prevents Vite SPA fallback confusion
+- Simulation cache: per-sim locking prevents concurrent downloads
+- Sequential loading with progress messages
+- Init error now displayed in UI instead of silent failure
+
+---
+
 ## 2026-03-29 — Phase 2: Lensing, Camera Controls, Doppler, Evolution Plots
 
 ### OrbitControls (Interactive Camera)

@@ -1,16 +1,12 @@
 /**
- * Black hole rendering with a single sprite combining dark core + glow.
- * Uses NormalBlending so the opaque black center actually occludes
- * the background. No depth-sorting artifacts.
+ * Black hole rendering:
+ * - Opaque black 3D sphere in the main scene (occluded by lensing)
+ * - White halo sprite in a separate overlay scene (rendered AFTER lensing)
  */
 
 import * as THREE from 'three';
 
-/**
- * Single combined texture: opaque black core → photon ring → soft halo → transparent.
- * All in one sprite, one draw call, no depth issues.
- */
-function createBHTexture() {
+function createHaloTexture() {
   const size = 256;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -18,78 +14,80 @@ function createBHTexture() {
   const ctx = canvas.getContext('2d');
   const half = size / 2;
 
-  // 1. Outer halo (faint blue glow)
-  const halo = ctx.createRadialGradient(half, half, half * 0.35, half, half, half);
-  halo.addColorStop(0, 'rgba(40, 70, 160, 0)');
-  halo.addColorStop(0.4, 'rgba(40, 70, 160, 0.06)');
-  halo.addColorStop(0.7, 'rgba(30, 50, 120, 0.03)');
-  halo.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = halo;
-  ctx.fillRect(0, 0, size, size);
-
-  // 2. Photon ring (bright blue-white ring)
-  const ring = ctx.createRadialGradient(half, half, half * 0.12, half, half, half * 0.4);
-  ring.addColorStop(0, 'rgba(60, 100, 200, 0)');
-  ring.addColorStop(0.35, 'rgba(100, 160, 255, 0.4)');
-  ring.addColorStop(0.5, 'rgba(140, 180, 255, 0.9)');
-  ring.addColorStop(0.65, 'rgba(120, 160, 255, 0.7)');
-  ring.addColorStop(0.8, 'rgba(80, 120, 220, 0.3)');
-  ring.addColorStop(1.0, 'rgba(40, 70, 160, 0)');
+  // Tight white glow ring
+  const ring = ctx.createRadialGradient(half, half, half * 0.35, half, half, half * 0.75);
+  ring.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  ring.addColorStop(0.25, 'rgba(200, 220, 255, 0.2)');
+  ring.addColorStop(0.45, 'rgba(230, 240, 255, 0.8)');
+  ring.addColorStop(0.55, 'rgba(220, 235, 255, 0.6)');
+  ring.addColorStop(0.7, 'rgba(180, 210, 250, 0.2)');
+  ring.addColorStop(1.0, 'rgba(100, 140, 200, 0)');
   ctx.fillStyle = ring;
   ctx.fillRect(0, 0, size, size);
-
-  // 3. Opaque black core (event horizon)
-  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-  ctx.beginPath();
-  ctx.arc(half, half, half * 0.13, 0, Math.PI * 2);
-  ctx.fill();
 
   return new THREE.CanvasTexture(canvas);
 }
 
-let _sharedTexture = null;
-function getBHTexture() {
-  if (!_sharedTexture) _sharedTexture = createBHTexture();
-  return _sharedTexture;
+let _sharedHalo = null;
+function getHaloTexture() {
+  if (!_sharedHalo) _sharedHalo = createHaloTexture();
+  return _sharedHalo;
 }
 
 export class BlackHole {
-  constructor(scene, mass = 0.5) {
+  /**
+   * @param {THREE.Scene} scene - main scene (for the opaque sphere)
+   * @param {THREE.Scene} overlayScene - overlay scene (for the halo, rendered post-lensing)
+   */
+  constructor(scene, overlayScene, mass = 0.5) {
     this.mass = mass;
     const radius = mass * 0.6;
 
-    // Single sprite with combined core + ring + halo texture
+    // Container in main scene
     this.mesh = new THREE.Object3D();
     scene.add(this.mesh);
 
-    const material = new THREE.SpriteMaterial({
-      map: getBHTexture(),
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.NormalBlending,
-    });
-    this.sprite = new THREE.Sprite(material);
-    this.sprite.scale.set(radius * 6, radius * 6, 1);
-    this.mesh.add(this.sprite);
+    // Opaque black sphere
+    const sphereGeom = new THREE.SphereGeometry(radius, 32, 32);
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    this._sphere = new THREE.Mesh(sphereGeom, sphereMat);
+    this.mesh.add(this._sphere);
 
-    // Keep a reference for glow intensity changes
-    this._material = material;
+    // Halo sprite in overlay scene (not affected by lensing)
+    const haloMat = new THREE.SpriteMaterial({
+      map: getHaloTexture(),
+      transparent: true,
+      opacity: 0.9,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    this._halo = new THREE.Sprite(haloMat);
+    this._halo.scale.set(radius * 4.5, radius * 4.5, 1);
+    this._haloMat = haloMat;
+
+    if (overlayScene) {
+      overlayScene.add(this._halo);
+    }
   }
 
   setPosition(x, y, z) {
     this.mesh.position.set(x, y, z);
+    this._halo.position.set(x, y, z);
   }
 
   setScale(s) {
     this.mesh.scale.setScalar(s);
+    this._halo.scale.setScalar(s * this.mass * 0.6 * 4.5);
   }
 
   setVisible(v) {
     this.mesh.visible = v;
+    this._halo.visible = v;
   }
 
   setGlowIntensity(opacity) {
-    this._material.opacity = opacity;
+    this._haloMat.opacity = opacity;
   }
 
   faceCamera() {
@@ -97,18 +95,20 @@ export class BlackHole {
   }
 
   dispose() {
-    this._material.dispose();
+    this._sphere.geometry.dispose();
+    this._sphere.material.dispose();
+    this._haloMat.dispose();
   }
 }
 
-export function createBlackHolePair(scene, mass1 = 0.5, mass2 = 0.5) {
-  const bhA = new BlackHole(scene, mass1);
-  const bhB = new BlackHole(scene, mass2);
+export function createBlackHolePair(scene, overlayScene, mass1 = 0.5, mass2 = 0.5) {
+  const bhA = new BlackHole(scene, overlayScene, mass1);
+  const bhB = new BlackHole(scene, overlayScene, mass2);
   return { bhA, bhB };
 }
 
-export function createRemnant(scene, mass = 0.95) {
-  const bh = new BlackHole(scene, mass);
+export function createRemnant(scene, overlayScene, mass = 0.95) {
+  const bh = new BlackHole(scene, overlayScene, mass);
   bh.setVisible(false);
   return bh;
 }

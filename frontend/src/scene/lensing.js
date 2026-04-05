@@ -131,7 +131,7 @@ export class LensingPass {
     );
   }
 
-  render(renderer, scene, camera) {
+  render(renderer, scene, camera, overlayScene = null) {
     // Pass 1: render scene with bloom
     this.renderPass.scene = scene;
     this.renderPass.camera = camera;
@@ -143,6 +143,13 @@ export class LensingPass {
     // Pass 2: lensing quad to screen
     renderer.setRenderTarget(null);
     renderer.render(this.quadScene, this.quadCamera);
+
+    // Pass 3: overlay scene (halos etc.) rendered on top, not lensed
+    if (overlayScene) {
+      renderer.autoClear = false;
+      renderer.render(overlayScene, camera);
+      renderer.autoClear = true;
+    }
   }
 
   setSize(width, height) {

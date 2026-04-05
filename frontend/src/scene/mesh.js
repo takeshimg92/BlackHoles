@@ -21,6 +21,7 @@ export class SpacetimeMesh {
     this._scene = scene;
     this.visible = true;
     this._brightnessMultiplier = 0.9;
+    this._colorHue = 220; // default blue
     this._grazingFade = 1.0;
     this._segs = GRID_SEGS;
 
@@ -180,7 +181,7 @@ export class SpacetimeMesh {
         const dy = y - body.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const envelope = Math.exp(-dist * dist / (sep * sep * 4.0));
-        well -= (body.mass || 0.5) * 2.5 / (dist + 0.5) * envelope;
+        well -= (body.mass || 0.5) * 2.5 / (dist + 1.5) * envelope;
       }
 
       // Wave zone: quadrupole spiral from COM
@@ -215,7 +216,7 @@ export class SpacetimeMesh {
       solidPos[i + 2] = disp;
 
       const t = (disp - minDisp) / dispRange;
-      const [r, g, b] = curvatureColor(t, disp, this._brightnessMultiplier);
+      const [r, g, b] = curvatureColor(t, disp, this._brightnessMultiplier, this._colorHue);
 
       // Radial fade: vertices beyond 70% of the grid half-size fade to black
       const x = basePos[i], y = basePos[i + 1];
@@ -237,6 +238,7 @@ export class SpacetimeMesh {
     const lineCol = this._lineColors;
     const halfGrid = GRID_SIZE / 2;
     const bm = this._brightnessMultiplier;
+    const [wr, wg, wb] = hslToRgb(this._colorHue / 360, 0.6, 0.55);
 
     for (let li = 0; li < indices.length; li++) {
       const vi = indices[li];
@@ -247,9 +249,10 @@ export class SpacetimeMesh {
 
       const edgeDist = Math.max(Math.abs(basePos[si]), Math.abs(basePos[si + 1]));
       const fade = 1 - smoothstep(halfGrid * 0.55, halfGrid * 0.95, edgeDist);
-      lineCol[li * 3] = 0.27 * fade * bm;
-      lineCol[li * 3 + 1] = 0.53 * fade * bm;
-      lineCol[li * 3 + 2] = 0.87 * fade * bm;
+
+      lineCol[li * 3] = wr * fade * bm;
+      lineCol[li * 3 + 1] = wg * fade * bm;
+      lineCol[li * 3 + 2] = wb * fade * bm;
     }
 
     // Update the underlying buffers directly instead of calling
@@ -294,6 +297,10 @@ export class SpacetimeMesh {
     this.solidMesh.visible = visible;
   }
 
+  setColorHue(hue) {
+    this._colorHue = hue;
+  }
+
   setBrightness(value) {
     // value: 0.1 (dim) to 1.5 (bright)
     this._brightnessMultiplier = value;
@@ -330,16 +337,36 @@ export class SpacetimeMesh {
   }
 }
 
-function curvatureColor(t, rawDisp, brightness = 1.0) {
+function curvatureColor(t, rawDisp, brightness = 1.0, hue = 220) {
   const absDisp = Math.abs(rawDisp);
   const intensity = Math.min(absDisp * 3.5, 1.0);
 
-  const b = brightness;
-  return [
-    (0.02 + 0.08 * intensity) * b,
-    (0.05 + 0.20 * intensity) * b,
-    (0.12 + 0.55 * intensity) * b,
-  ];
+  // Use hue with varying lightness based on displacement
+  const lightness = 0.05 + 0.35 * intensity;
+  const [r, g, b] = hslToRgb(hue / 360, 0.6, lightness);
+  return [r * brightness, g * brightness, b * brightness];
+}
+
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [r, g, b];
 }
 
 function smoothstep(edge0, edge1, x) {

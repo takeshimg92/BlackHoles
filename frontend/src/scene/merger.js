@@ -33,6 +33,8 @@ export class MergerScene {
 
     // Scene
     this.scene = new THREE.Scene();
+    // Overlay scene: rendered AFTER lensing (halos, not distorted)
+    this.overlayScene = new THREE.Scene();
 
     // Camera — looking down at an angle onto the orbital plane
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
@@ -59,6 +61,10 @@ export class MergerScene {
     this.trailA = null;
     this.trailB = null;
     this._mergerFlashTime = -1;
+    this.spinAxisA = null;
+    this.spinAxisB = null;
+    this.spinAxisRemnant = null;
+    this._spinAxesVisible = false;
 
     // Store current BH positions for external access (Doppler, lensing)
     this._bhPosA = new THREE.Vector3();
@@ -77,12 +83,32 @@ export class MergerScene {
     this.spacetimeMesh = new SpacetimeMesh(this.scene);
 
     // Black holes (will be positioned once data loads)
-    this.blackHoles = createBlackHolePair(this.scene, 0.5, 0.5);
-    this.remnantBH = createRemnant(this.scene, 0.95);
+    this.blackHoles = createBlackHolePair(this.scene, this.overlayScene, 0.5, 0.5);
+    this.remnantBH = createRemnant(this.scene, this.overlayScene, 0.95);
+
+    // Spin axis arrows (same color, size scales with spin magnitude)
+    const ARROW_COLOR = 0x88ccff;
+    this.spinAxisA = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, ARROW_COLOR, 0.3, 0.15
+    );
+    this.spinAxisB = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, ARROW_COLOR, 0.3, 0.15
+    );
+    this.spinAxisRemnant = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, ARROW_COLOR, 0.3, 0.15
+    );
+    this.spinAxisA.visible = false;
+    this.spinAxisB.visible = false;
+    this.spinAxisRemnant.visible = false;
+    this.scene.add(this.spinAxisA);
+    this.scene.add(this.spinAxisB);
+    this.scene.add(this.spinAxisRemnant);
 
     // Lensing post-process
     const rect = this.canvas.getBoundingClientRect();
-    this.lensingPass = new LensingPass(this.renderer, rect.width, rect.height);
+    const w = Math.max(rect.width, 1);
+    const h = Math.max(rect.height, 1);
+    this.lensingPass = new LensingPass(this.renderer, w, h);
   }
 
   resetCamera() {
@@ -237,8 +263,18 @@ export class MergerScene {
     if (this.spacetimeMesh) this.spacetimeMesh.setBrightness(value);
   }
 
+  setMeshColorHue(hue) {
+    if (this.spacetimeMesh) this.spacetimeMesh.setColorHue(hue);
+  }
+
   setMeshResolution(segs) {
     if (this.spacetimeMesh) this.spacetimeMesh.setResolution(segs);
+  }
+
+  setSpinAxesVisible(visible) {
+    this._spinAxesVisible = visible;
+    if (this.spinAxisA) this.spinAxisA.visible = visible;
+    if (this.spinAxisB) this.spinAxisB.visible = visible;
   }
 
   setTrailsVisible(visible) {
@@ -390,6 +426,60 @@ export class MergerScene {
     this.blackHoles.bhB.faceCamera(this.camera);
     this.remnantBH.faceCamera(this.camera);
 
+    // Update spin axis arrows — show individual pre-merger, remnant post-merger
+    if (this._spinAxesVisible) {
+      if (isPostMerger || isTransitioning) {
+        // Hide individual spin arrows
+        this.spinAxisA.visible = false;
+        this.spinAxisB.visible = false;
+
+        // Show remnant spin arrow (from metadata)
+        const remSpin = data.remnant_spin;
+        if (remSpin && isPostMerger) {
+          const rsx = remSpin[0] || 0, rsy = remSpin[1] || 0, rsz = remSpin[2] || 0;
+          const dirR = new THREE.Vector3(rsx, rsz, rsy).normalize();
+          const magR = Math.sqrt(rsx*rsx + rsy*rsy + rsz*rsz);
+          const lenR = magR * 6;
+          this.spinAxisRemnant.visible = true;
+          this.spinAxisRemnant.position.set(rx, ry, rz);
+          this.spinAxisRemnant.setDirection(dirR);
+          this.spinAxisRemnant.setLength(lenR, lenR * 0.2, lenR * 0.1);
+        }
+      } else {
+        // Pre-merger: show individual spin arrows
+        this.spinAxisRemnant.visible = false;
+
+        const sAx = data.body_A.spin_x ? data.body_A.spin_x[idx] : 0;
+        const sAy = data.body_A.spin_y ? data.body_A.spin_y[idx] : 0;
+        const sAz = data.body_A.spin_z ? data.body_A.spin_z[idx] : 0;
+        const sBx = data.body_B.spin_x ? data.body_B.spin_x[idx] : 0;
+        const sBy = data.body_B.spin_y ? data.body_B.spin_y[idx] : 0;
+        const sBz = data.body_B.spin_z ? data.body_B.spin_z[idx] : 0;
+
+        const dirA = new THREE.Vector3(sAx, sAz, sAy).normalize();
+        const dirB = new THREE.Vector3(sBx, sBz, sBy).normalize();
+        const magA = Math.sqrt(sAx*sAx + sAy*sAy + sAz*sAz);
+        const magB = Math.sqrt(sBx*sBx + sBy*sBy + sBz*sBz);
+
+        const lenA = magA * 6;
+        const lenB = magB * 6;
+
+        this.spinAxisA.visible = true;
+        this.spinAxisA.position.set(ax, ay, az);
+        this.spinAxisA.setDirection(dirA);
+        this.spinAxisA.setLength(lenA, lenA * 0.2, lenA * 0.1);
+
+        this.spinAxisB.visible = true;
+        this.spinAxisB.position.set(bx, by, bz);
+        this.spinAxisB.setDirection(dirB);
+        this.spinAxisB.setLength(lenB, lenB * 0.2, lenB * 0.1);
+      }
+    } else {
+      this.spinAxisA.visible = false;
+      this.spinAxisB.visible = false;
+      this.spinAxisRemnant.visible = false;
+    }
+
     // Update orbital trails
     this._updateTrails(idx);
 
@@ -432,10 +522,12 @@ export class MergerScene {
       // The mesh geometry has rotation.x = -π/2, so geometry (gx, gy)
       // maps to scene (gx, -gy).  Body positions in the mesh's geometry
       // space therefore need negated y (scene z → geometry -y).
+      const spinA_z = data.body_A.spin_z ? data.body_A.spin_z[idx] : 0;
+      const spinB_z = data.body_B.spin_z ? data.body_B.spin_z[idx] : 0;
       this.spacetimeMesh.deform(
         [
-          { x: ax, y: -az, mass: data.body_A.mass[idx] },
-          { x: bx, y: -bz, mass: data.body_B.mass[idx] },
+          { x: ax, y: -az, mass: data.body_A.mass[idx], spinZ: spinA_z },
+          { x: bx, y: -bz, mass: data.body_B.mass[idx], spinZ: spinB_z },
         ],
         amplitude,
         phase,
@@ -454,9 +546,13 @@ export class MergerScene {
     if (this.spacetimeMesh) this.spacetimeMesh.updateCameraFade(this.camera);
 
     if (this.lensingPass) {
-      this.lensingPass.render(this.renderer, this.scene, this.camera);
+      this.lensingPass.render(this.renderer, this.scene, this.camera, this.overlayScene);
     } else {
       this.renderer.render(this.scene, this.camera);
+      // Render overlay on top
+      this.renderer.autoClear = false;
+      this.renderer.render(this.overlayScene, this.camera);
+      this.renderer.autoClear = true;
     }
   }
 

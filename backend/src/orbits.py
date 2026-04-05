@@ -67,6 +67,14 @@ def load_trajectories(sim_id: str, max_points: int = 6000) -> dict:
     mass_A_interp = np.interp(t_common, t_A, mass_A.flatten())
     mass_B_interp = np.interp(t_common, t_B, mass_B.flatten())
 
+    # Spin vectors (3-component, inertial frame)
+    spin_A = np.array(hA.chi_inertial)  # shape (N, 3)
+    spin_B = np.array(hB.chi_inertial)
+    cs_spin_A = CubicSpline(t_A, spin_A, axis=0, extrapolate=False)
+    cs_spin_B = CubicSpline(t_B, spin_B, axis=0, extrapolate=False)
+    spin_A_interp = cs_spin_A(t_clamp_A)
+    spin_B_interp = cs_spin_B(t_clamp_B)
+
     result = {
         "time": t_common.tolist(),
         "body_A": {
@@ -74,12 +82,18 @@ def load_trajectories(sim_id: str, max_points: int = 6000) -> dict:
             "y": pos_A_interp[:, 1].tolist(),
             "z": pos_A_interp[:, 2].tolist(),
             "mass": mass_A_interp.tolist(),
+            "spin_x": spin_A_interp[:, 0].tolist(),
+            "spin_y": spin_A_interp[:, 1].tolist(),
+            "spin_z": spin_A_interp[:, 2].tolist(),
         },
         "body_B": {
             "x": pos_B_interp[:, 0].tolist(),
             "y": pos_B_interp[:, 1].tolist(),
             "z": pos_B_interp[:, 2].tolist(),
             "mass": mass_B_interp.tolist(),
+            "spin_x": spin_B_interp[:, 0].tolist(),
+            "spin_y": spin_B_interp[:, 1].tolist(),
+            "spin_z": spin_B_interp[:, 2].tolist(),
         },
         "separation": separation.tolist(),
     }
@@ -100,8 +114,12 @@ def load_trajectories(sim_id: str, max_points: int = 6000) -> dict:
             "mass": np.array(hC.christodoulou_mass)[::stride].flatten().tolist(),
         }
         result["merger_time"] = float(t_C[0])
+        # Remnant spin vector from metadata
+        rem_spin = sim.metadata.get("remnant_dimensionless_spin")
+        result["remnant_spin"] = list(rem_spin) if rem_spin is not None else None
     except Exception:
         result["remnant"] = None
         result["merger_time"] = None
+        result["remnant_spin"] = None
 
     return result

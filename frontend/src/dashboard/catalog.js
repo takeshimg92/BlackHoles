@@ -6,11 +6,18 @@
  * visual comparison across simulations.
  */
 
+function spinMag(v) {
+  if (!v || !Array.isArray(v)) return null;
+  return Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+}
+
 const COLUMNS = [
   { key: 'mass_ratio', label: 'q', tooltip: 'Mass ratio', fmt: v => v?.toFixed(2), color: '#4a7cff' },
+  { key: 'spin1', label: '|χ₁|', tooltip: 'Spin magnitude of body 1', fmt: v => spinMag(v)?.toFixed(2), valueFn: spinMag, color: '#88ccff' },
+  { key: 'spin2', label: '|χ₂|', tooltip: 'Spin magnitude of body 2', fmt: v => spinMag(v)?.toFixed(2), valueFn: spinMag, color: '#88ccff' },
   { key: 'eccentricity', label: 'e', tooltip: 'Eccentricity', fmt: v => v?.toExponential(1), color: '#44bbff' },
   { key: 'num_orbits', label: 'Orbits', tooltip: 'Number of orbits', fmt: v => v?.toFixed(1), color: '#66dd88' },
-  { key: 'chi_eff', label: '\u03C7\u2091\u2092\u2092', tooltip: 'Effective spin', fmt: v => v?.toFixed(3), color: '#ff8844', signed: true },
+  { key: 'chi_eff', label: 'χ_eff', tooltip: 'Effective spin', fmt: v => v?.toFixed(3), color: '#ff8844', signed: true },
 ];
 
 export class CatalogBrowser {
@@ -30,10 +37,10 @@ export class CatalogBrowser {
     for (const col of COLUMNS) {
       let min = Infinity, max = -Infinity;
       for (const sim of simulations) {
-        const v = sim[col.key];
+        const raw = sim[col.key];
+        const v = col.valueFn ? col.valueFn(raw) : raw;
         if (v != null && isFinite(v)) {
           if (col.signed) {
-            // For signed values (chi_eff), scale by absolute value
             const abs = Math.abs(v);
             if (abs > max) max = abs;
           } else {
@@ -67,8 +74,9 @@ export class CatalogBrowser {
       let cells = `<span class="cat-col cat-id-col cat-sim-name">${sim.sim_id.replace('SXS:BBH:', '')}</span>`;
 
       for (const col of COLUMNS) {
-        const v = sim[col.key];
-        const text = v != null ? col.fmt(v) : '-';
+        const raw = sim[col.key];
+        const v = col.valueFn ? col.valueFn(raw) : raw;
+        const text = raw != null ? col.fmt(raw) : '-';
         const range = ranges[col.key];
         const span = range.max - range.min || 1;
 

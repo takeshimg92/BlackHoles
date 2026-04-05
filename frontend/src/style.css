@@ -461,7 +461,7 @@ html, body {
 
 .cat-header {
   display: grid;
-  grid-template-columns: 100px repeat(4, 1fr);
+  grid-template-columns: 100px repeat(6, 1fr);
   gap: 8px;
   padding: 8px 12px;
   background: var(--bg-secondary);
@@ -477,7 +477,7 @@ html, body {
 
 .cat-row {
   display: grid;
-  grid-template-columns: 100px repeat(4, 1fr);
+  grid-template-columns: 100px repeat(6, 1fr);
   gap: 8px;
   padding: 6px 12px;
   background: var(--bg-panel);
