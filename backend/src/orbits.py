@@ -1,11 +1,12 @@
 """Orbital trajectory extraction from SXS horizon data."""
 
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 from .simcache import get_simulation
 
 
-def load_trajectories(sim_id: str, max_points: int = 2000) -> dict:
+def load_trajectories(sim_id: str, max_points: int = 6000) -> dict:
     """Load the orbital trajectories of both compact objects.
 
     Uses actual SXS horizon coordinate data (inertial frame).
@@ -42,20 +43,25 @@ def load_trajectories(sim_id: str, max_points: int = 2000) -> dict:
     n_points = min(max_points, len(t_A), len(t_B))
     t_common = np.linspace(t_min, t_max, n_points)
 
-    # Interpolate positions onto common time grid
-    # np.interp clamps beyond the data range, so after t_max_AB
-    # the bodies hold their final positions (they've merged)
-    pos_A_interp = np.column_stack([
-        np.interp(t_common, t_A, pos_A[:, i]) for i in range(3)
-    ])
-    pos_B_interp = np.column_stack([
-        np.interp(t_common, t_B, pos_B[:, i]) for i in range(3)
-    ])
+    # Cubic spline interpolation onto common time grid.
+    # Orbital trajectories are smooth curves (quasi-Keplerian spirals),
+    # so cubic interpolation avoids the "pointy" artifacts of linear
+    # interpolation, especially near merger where the orbit tightens.
+    # For times beyond the A/B data range (post-merger), we clamp to
+    # the last known position.
+    t_clamp_A = np.clip(t_common, t_A[0], t_A[-1])
+    t_clamp_B = np.clip(t_common, t_B[0], t_B[-1])
+
+    cs_A = CubicSpline(t_A, pos_A, axis=0, extrapolate=False)
+    cs_B = CubicSpline(t_B, pos_B, axis=0, extrapolate=False)
+
+    pos_A_interp = cs_A(t_clamp_A)
+    pos_B_interp = cs_B(t_clamp_B)
 
     # Compute separation
     separation = np.linalg.norm(pos_A_interp - pos_B_interp, axis=1)
 
-    # Extract masses over time
+    # Masses — these change slowly, linear interp is fine
     mass_A = np.array(hA.christodoulou_mass)
     mass_B = np.array(hB.christodoulou_mass)
     mass_A_interp = np.interp(t_common, t_A, mass_A.flatten())

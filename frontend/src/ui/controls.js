@@ -21,9 +21,25 @@ export function setupTabs(onTabChange) {
   });
 }
 
-export function setupTimeSlider(onTimeChange) {
+export function setupTimeSlider(onTimeChange, onDragStart, onDragEnd) {
   const slider = document.getElementById('time-slider');
   const display = document.getElementById('time-display');
+  let userDragging = false;
+
+  slider.addEventListener('pointerdown', () => {
+    userDragging = true;
+    if (onDragStart) onDragStart();
+  });
+
+  function endDrag() {
+    if (!userDragging) return;
+    userDragging = false;
+    if (onDragEnd) onDragEnd(parseFloat(slider.value));
+  }
+
+  // Listen on window so we catch release even if pointer leaves the slider
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
 
   slider.addEventListener('input', () => {
     const fraction = parseFloat(slider.value);
@@ -32,7 +48,9 @@ export function setupTimeSlider(onTimeChange) {
 
   return {
     setValue(fraction, timeValue) {
-      slider.value = fraction;
+      if (!userDragging) {
+        slider.value = fraction;
+      }
       display.textContent = `t = ${timeValue.toFixed(1)} M`;
     },
   };
@@ -99,8 +117,8 @@ export function setupSpeedControl(onChange) {
     const seconds = parseFloat(select.value);
     if (onChange) onChange(seconds);
   });
-  // Fire initial value
-  onChange(parseFloat(select.value));
+  // Don't fire initial value — loadSimulation already fetches audio
+  // at the correct duration, and firing here races with it.
 }
 
 export function updateInfoBar(metadata) {
@@ -110,19 +128,16 @@ export function updateInfoBar(metadata) {
   title.textContent = metadata.sim_id;
 
   const items = [
-    { label: 'q', value: metadata.mass_ratio?.toFixed(4), tooltip: 'Mass ratio m\u2081/m\u2082 (larger mass over smaller)' },
-    { label: 'e', value: metadata.eccentricity?.toFixed(5), tooltip: 'Orbital eccentricity at reference time (0 = circular)' },
-    { label: 'orbits', value: metadata.num_orbits?.toFixed(1), tooltip: 'Number of orbits from reference time to merger' },
-    { label: '\u03C7', labelSub: 'eff', value: metadata.chi_eff?.toFixed(4), tooltip: 'Effective spin: mass-weighted projection of spins onto the orbital angular momentum' },
+    { label: 'Mass ratio (q)', value: metadata.mass_ratio?.toFixed(4), tooltip: 'Ratio m\u2081/m\u2082 of the heavier to lighter black hole' },
+    { label: 'Eccentricity (e)', value: metadata.eccentricity?.toFixed(5), tooltip: 'Orbital eccentricity at reference time (0 = circular)' },
+    { label: 'Orbits', value: metadata.num_orbits?.toFixed(1), tooltip: 'Number of orbits from reference time to merger' },
+    { label: 'Effective spin (\u03C7<sub>eff</sub>)', value: metadata.chi_eff?.toFixed(4), tooltip: 'Mass-weighted projection of spins onto the orbital angular momentum' },
   ];
 
   params.innerHTML = items
     .filter(i => i.value != null)
     .map(i => {
-      const labelHtml = i.labelSub
-        ? `${i.label}<sub>${i.labelSub}</sub>`
-        : i.label;
-      return `<span class="param"><span class="param-label">${labelHtml}:</span><span class="param-value">${i.value}</span><span class="param-tooltip" title="${i.tooltip}">?</span></span>`;
+      return `<span class="param"><span class="param-label">${i.label}:</span><span class="param-value">${i.value}</span><span class="param-tooltip" title="${i.tooltip}">?</span></span>`;
     })
     .join('');
 }

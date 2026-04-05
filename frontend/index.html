@@ -10,6 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
       onload="renderMathInElement(document.getElementById('implementation-content'), {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <title>Gravitational Waves</title>
   </head>
   <body>
@@ -21,8 +22,13 @@
     <div id="app">
       <!-- Top bar: simulation info -->
       <header id="info-bar">
-        <div id="sim-title">Loading...</div>
-        <div id="sim-params"></div>
+        <div id="info-bar-top">
+          <div id="app-title">Visualizing Black Hole Mergers</div>
+        </div>
+        <div id="info-bar-bottom">
+          <div id="sim-title">Loading...</div>
+          <div id="sim-params"></div>
+        </div>
       </header>
 
       <!-- Tab navigation -->
@@ -30,6 +36,7 @@
         <button class="tab active" data-tab="merger">Merger</button>
         <button class="tab" data-tab="dashboard">Simulation Selection</button>
         <button class="tab" data-tab="implementation">Implementation</button>
+        <button class="tab" data-tab="about">About</button>
       </nav>
 
       <!-- Tab panels -->
@@ -59,7 +66,7 @@
           </label>
           <div id="lensing-control">
             <span class="param-label">Lensing</span>
-            <input type="range" id="lensing-slider" min="0" max="0.003" step="0.0001" value="0.0005" />
+            <input type="range" id="lensing-slider" min="0" max="1.5" step="0.05" value="0.3" />
           </div>
           <div id="speed-control">
             <span class="param-label">Speed</span>
@@ -86,7 +93,7 @@
             <h2>What are Gravitational Waves?</h2>
             <p>
               In Einstein's General Theory of Relativity, gravity is not a force but the
-              curvature of spacetime caused by mass and energy. When massive objects
+              curvature of spacetime caused by mass, energy, and stress. When massive objects
               accelerate &mdash; for instance, two black holes spiraling toward each other &mdash;
               they produce <strong>ripples in the fabric of spacetime</strong> that propagate outward
               at the speed of light. These ripples are <em>gravitational waves</em>.
@@ -128,14 +135,46 @@
           <div class="impl-section">
             <h2>Key Physical Quantities</h2>
 
-            <h3>Strain modes $h^{\ell m}$</h3>
+            <h3>Strain and its polarizations</h3>
             <p>
-              The gravitational wave signal is decomposed into <strong>spin-weighted
-              spherical harmonics</strong> ${}_{-2}Y^{\ell m}(\theta, \phi)$, analogous to
-              how sound can be decomposed into frequencies. Each mode $h^{\ell m}(t)$ is a
-              complex time series capturing both the amplitude and phase of oscillation for
-              a given angular pattern. The dominant mode is $(\ell, m) = (2,2)$, which carries
-              most of the radiated energy and has a quadrupole (four-lobed) angular pattern.
+              Einstein's field equations, in their full nonlinear form, do not uniquely determine
+              the gravitational wave content of a spacetime &mdash; one must fix a <strong>gauge</strong>.
+              The standard choice for gravitational radiation is the <strong>transverse-traceless
+              (TT) gauge</strong>, in which the wave perturbation $h_{\mu\nu}$ has only spatial
+              components, is traceless, and is transverse to the propagation direction.
+            </p>
+            <p>
+              In the TT gauge, gravitational waves have <strong>two independent polarizations</strong>,
+              conventionally called $h_+$ ("plus") and $h_\times$ ("cross"). They describe
+              orthogonal stretching/squeezing patterns in the plane transverse to the wave's
+              propagation. These are combined into a single <strong>complex strain</strong>:
+            </p>
+            <p class="formula">
+              $$h = h_+ - i\, h_\times$$
+            </p>
+
+            <h3>Spin-weighted spherical harmonic expansion</h3>
+            <p>
+              The complex strain $h$ depends on the observer's angular position $(\theta, \phi)$
+              relative to the source. It can be expanded in a complete basis of
+              <strong>spin-weighted spherical harmonics</strong> ${}_{-2}Y_{\ell m}$
+              (spin weight $s = -2$ reflects the tensor nature of gravitational radiation):
+            </p>
+            <p class="formula">
+              $$h(\theta, \phi, t) = \sum_{\ell \geq 2}\; \sum_{m=-\ell}^{\ell}\; h_{\ell m}(t)\;\, {}_{-2}Y_{\ell m}(\theta, \phi)$$
+            </p>
+            <p>
+              Each mode $h_{\ell m}(t)$ is a complex time series encoding the amplitude and
+              phase of a particular angular radiation pattern. This decomposition is analogous
+              to a Fourier expansion, but on the sphere rather than a line.
+            </p>
+            <p>
+              The <strong>dominant mode</strong> is $(\ell, m) = (2, 2)$, which carries most of
+              the radiated energy and has a quadrupole (four-lobed) angular pattern. For
+              equal-mass, non-precessing binaries viewed face-on, the $(2,2)$ mode accounts
+              for $\gtrsim 95\%$ of the total radiated power. Higher-order modes
+              ($\ell \geq 3$, or $m \neq \ell$) become important for asymmetric mass ratios,
+              precessing spins, or edge-on orientations.
             </p>
 
             <h3>Mass ratio $q$</h3>
@@ -162,16 +201,51 @@
 
             <h3>Christodoulou mass</h3>
             <p>
-              The <em>irreducible</em> mass of a black hole, defined from the area of its
-              apparent horizon:
+              In general relativity, "mass" is not as straightforward as in Newtonian gravity.
+              For an isolated system, one can define the total mass-energy at spatial infinity
+              (the ADM mass), but for <em>individual</em> black holes within a binary, there is
+              no unique global definition. The <strong>Christodoulou mass</strong> provides a
+              <em>quasi-local</em> measure tied to the apparent horizon of each black hole:
             </p>
             <p class="formula">
               $$M_{\text{Chr}}^2 = M_{\text{irr}}^2 + \frac{S^2}{4\,M_{\text{irr}}^2}$$
             </p>
             <p>
-              where $S$ is the spin angular momentum and $M_{\text{irr}} = \sqrt{A / 16\pi}$
-              with $A$ the horizon area. This is a quasi-local measure of each black hole's
-              mass that accounts for its rotational energy.
+              where $M_{\text{irr}} = \sqrt{A / 16\pi}$ is the irreducible mass (determined
+              solely from the horizon area $A$), and $S$ is the spin angular momentum of the
+              black hole. The Christodoulou mass thus accounts for both the "bare" mass
+              content (via the area) and the rotational energy stored in the spin.
+            </p>
+            <h4>Why use it?</h4>
+            <p>
+              Unlike coordinate-dependent mass measures, $M_{\text{Chr}}$ is gauge-invariant
+              and well-defined even in the strong-field, dynamical regime of a merger. It is
+              the standard mass measure used in numerical relativity because it can be computed
+              directly from the apparent horizon finder at each time step, without needing to
+              solve any global equations.
+            </p>
+            <h4>Behavior during a merger</h4>
+            <p>
+              <strong>During inspiral:</strong> Each black hole's Christodoulou mass is nearly
+              constant. For SXS:BBH:0304, $M_A \approx M_B \approx 0.500\,M$ throughout the
+              inspiral &mdash; the individual horizons barely change as the bodies orbit.
+              The energy lost to gravitational radiation comes from the <em>orbital</em> binding
+              energy, not from the black holes themselves.
+            </p>
+            <p>
+              <strong>At merger:</strong> The two apparent horizons merge into a single
+              <strong>common apparent horizon</strong>. The Christodoulou mass of this remnant
+              starts at $M_{\text{rem}} \approx 0.86\,M$ (for BBH:0304) &mdash; significantly
+              less than $M_A + M_B = 1.0\,M$. The "missing" mass
+              ($\sim 5\%$ of the total) was radiated away as gravitational waves.
+            </p>
+            <p>
+              <strong>During ringdown:</strong> The remnant's Christodoulou mass grows from
+              $\sim 0.86\,M$ to its final value $\sim 0.95\,M$ as the distorted horizon
+              settles into a stationary Kerr black hole. This growth reflects the horizon
+              area increasing as the remnant absorbs the remaining quasi-normal mode
+              oscillations. By Hawking's area theorem, the area (and hence $M_{\text{irr}}$)
+              can only increase.
             </p>
 
             <h3>Eccentricity $e$</h3>
@@ -218,13 +292,6 @@
               the largest public collection of numerical relativity binary black hole simulations
               with 4,150+ configurations. Data is accessed via the
               <code>sxs</code> Python package (v2025.0).
-            </p>
-            <p>
-              Each simulation provides: horizon trajectories (inertial frame positions),
-              Christodoulou masses, dimensionless spins, and the gravitational wave strain
-              $h(t)$ decomposed into spin-weighted spherical harmonic modes
-              $h^{\ell,m}$. We use the dominant $(\ell, m) = (2,2)$ mode by default.
-            </p>
           </div>
 
           <div class="impl-section">
@@ -249,10 +316,13 @@
             <p>
               Critically, we interpolate the <strong>amplitude $A(t)$ and phase
               $\Phi(t)$</strong> (both smooth functions) rather than the oscillating
-              $h_+(t)$ directly, then reconstruct
+              $h_+(t)$ directly, then reconstruct:
             </p>
             <p class="formula">
-              $$h(t) = A(t) \cdot \cos\!\bigl(\Phi(t)\bigr)$$
+              $$h_+(t) = A(t) \cos\Phi(t), \qquad h_\times(t) = A(t) \sin\Phi(t)$$
+            </p>
+            <p>
+              The waveform strip displays $h_+(t)$, the plus polarization.
             </p>
             <p>
               This avoids aliasing artifacts near merger where the GW frequency is high.
@@ -300,15 +370,32 @@
             <p>
               A post-processing screen-space shader simulates gravitational lensing. The scene
               is first rendered to a texture, then a fullscreen quad samples this texture with
-              UV displacements near each black hole's screen position:
+              UV displacements near each black hole's screen position. The raw deflection follows
+              a softened inverse-square profile:
             </p>
             <p class="formula">
-              $$\delta\mathbf{UV} \propto -\frac{M \, s}{|\Delta\mathbf{UV}| + \epsilon}$$
+              $$d(r) = \frac{s \, r_{\text{EH}}^2}{r^2 + 0.5\, r_{\text{EH}}} \cdot \text{smoothstep}(r_{\text{lens}},\, 0.3\, r_{\text{lens}},\, r)$$
             </p>
             <p>
-              where $s$ is a user-controllable strength parameter and $\epsilon$ is a
-              softening constant.  A $\text{smoothstep}$ falloff confines the effect to
-              the vicinity of each black hole.
+              where $r$ is the screen-space distance from the BH center,
+              $r_{\text{EH}} = M \times 0.06$ is the event horizon screen radius,
+              $r_{\text{lens}} = 5\, r_{\text{EH}}$ is the outer lensing boundary, and
+              $s$ is a user-controllable strength.
+            </p>
+            <p>
+              To prevent the deflection from exceeding the screen distance (which would cause
+              UV sampling to wrap into invalid regions, producing ring artifacts), a
+              <strong>soft saturation</strong> is applied:
+            </p>
+            <p class="formula">
+              $$d_{\text{eff}} = \frac{d \cdot r}{d + r}$$
+            </p>
+            <p>
+              This harmonic-mean form guarantees $d_{\text{eff}} &lt; r$ for all $r > 0$,
+              ensuring the effective source radius $r - d_{\text{eff}} = r^2 / (d + r)$
+              stays positive and monotonically increasing.
+              The monotonicity is verified by automated tests across all strength and mass
+              values.
             </p>
           </div>
 
@@ -326,12 +413,6 @@
               The audio buffer is generated server-side at the exact target playback duration,
               so no pitch-shifting artifacts occur. The envelope peak is guaranteed to align
               with the waveform amplitude peak (verified by automated tests).
-            </p>
-            <p>
-              <strong>Doppler modulation:</strong> A Web Audio BiquadFilterNode shifts
-              the perceived pitch based on the radial velocity of the binary center-of-mass
-              relative to the camera, following
-              $f_{\text{obs}} = f_{\text{emit}} / (1 - v_r / c_{\text{eff}})$.
             </p>
           </div>
 
@@ -373,14 +454,62 @@
               Managed with <code>uv</code>.
             </p>
             <p>
-              <strong>Frontend:</strong> Three.js (WebGL), Vite, Web Audio API. Custom GLSL shaders
-              for lensing + bloom (UnrealBloomPass). Canvas 2D for waveform and evolution plots.
+              <strong>Frontend:</strong> Three.js (WebGL), Vite, Web Audio API. Custom GLSL shader
+              for gravitational lensing; Three.js UnrealBloomPass for bloom.
+              Canvas 2D for waveform and evolution plots.
             </p>
             <p>
               <strong>Star background:</strong> Yale Bright Star Catalog (~9,000 stars) with
               B-V color index $\to$ RGB mapping and magnitude-based brightness scaling.
             </p>
           </div>
+        </div>
+      </div>
+
+      <div id="panel-about" class="panel">
+        <div id="about-content">
+          <h3>Alessandro Morita Gagliardi</h3>
+          <p class="about-tagline">Hello there!</p>
+          <p>
+            Physics and data science professional currently living in Tokyo.
+            Feel free to share any feedback you may have, be it bugs, physics
+            inaccuracies, UI/UX issues, or suggestions for new features.
+          </p>
+          <p>
+            This application visualizes binary black hole mergers using numerical
+            relativity data from the
+            <a href="https://data.black-holes.org" target="_blank">SXS catalog</a>.
+            It was built as an educational tool to help students and researchers
+            explore how different binary configurations produce different gravitational
+            wave signals.
+          </p>
+          <p>
+            My original exposure to this dataset was in 2014, when I was a master student 
+            doing an internship at the <a href="https://www.aei.mpg.de/" target="_blank">Max Planck Institute for Gravitational Physics (Albert Einstein Institute)</a>.
+          </p>
+          <p>
+            Prior to that, I had only dealt with gravitational waves from the theoretical side, and
+            had never dealt with the complexities and idiosyncrasies of actual numerical relativity data. 
+            In this project, we don't dive into the nitty-gritty of how these simulations are generated,
+            and instead focus on extracting a qualitative understanding of how different physical parameters 
+            affect the waveform and the merger dynamics. 
+          </p>
+          <p>
+            I hope that by making this data more accessible and interactive, it can inspire 
+            others to explore the rich world of numerical relativity and gravitational wave physics in more depth.
+          </p>
+          <h4>Links</h4>
+          <div class="about-links">
+            <a href="https://takeshimg92.github.io" target="_blank">Blog</a>
+            <a href="https://github.com/takeshimg92" target="_blank">GitHub</a>
+            <a href="https://linkedin.com/in/atmg92" target="_blank">LinkedIn</a>
+          </div>
+          <h4>Acknowledgements</h4>
+          <p>
+            Simulation data provided by the SXS Collaboration. Star background
+            from the Yale Bright Star Catalog. Built with Three.js, FastAPI,
+            and the <code>sxs</code> Python package.
+          </p>
         </div>
       </div>
     </div>

@@ -30,19 +30,36 @@ function hideLoading() {
   document.getElementById('loading-overlay').classList.add('hidden');
 }
 
+function updateLoadingStep(step) {
+  const overlay = document.getElementById('loading-overlay');
+  overlay.querySelector('.loading-text').textContent = step;
+}
+
 async function loadSimulation(simId) {
   showLoading(simId);
 
   try {
-    // Fetch all data in parallel
     currentSimId = simId;
-    const [metadata, trajectories, waveform, audio, evolution] = await Promise.all([
-      fetchSimulation(simId),
-      fetchTrajectories(simId),
-      fetchWaveform(simId),
-      fetchAudio(simId, 2, 2, currentPlaybackDuration),
-      fetchEvolution(simId),
-    ]);
+
+    // Load sequentially so (a) the cache serves subsequent sxs.load()
+    // calls instantly instead of 5 parallel downloads, and (b) the
+    // user sees progress at each step.
+    updateLoadingStep(`Loading metadata...`);
+    const metadata = await fetchSimulation(simId);
+
+    updateLoadingStep(`Downloading trajectories...`);
+    const trajectories = await fetchTrajectories(simId);
+
+    updateLoadingStep(`Processing waveform...`);
+    const waveform = await fetchWaveform(simId);
+
+    updateLoadingStep(`Generating audio...`);
+    const audio = await fetchAudio(simId, 2, 2, currentPlaybackDuration);
+
+    updateLoadingStep(`Computing evolution...`);
+    const evolution = await fetchEvolution(simId);
+
+    updateLoadingStep(`Initializing...`);
 
     // Update UI
     updateInfoBar(metadata);
@@ -103,12 +120,10 @@ function animate() {
     const time = mergerScene.getCurrentTime();
     timeSlider.setValue(fraction, time);
     waveformPlot.setFraction(fraction);
+    waveformPlot.setCurrentTime(time);
     evolutionPlot.setFraction(fraction);
+    evolutionPlot.setCurrentTime(time);
     chirpAudio.syncToFraction(fraction);
-
-    // Doppler modulation
-    const bhPos = mergerScene.getBHPositions();
-    chirpAudio.updateDoppler(bhPos.a, bhPos.b, mergerScene.camera.position);
 
     if (!stillGoing) {
       playing = false;
@@ -157,13 +172,35 @@ async function init() {
     }
   });
 
-  timeSlider = setupTimeSlider((fraction) => {
-    mergerScene.setTimeFraction(fraction);
-    waveformPlot.setFraction(fraction);
-    evolutionPlot.setFraction(fraction);
-    const time = mergerScene.getCurrentTime();
-    timeSlider.setValue(fraction, time);
-  });
+  let wasPlayingBeforeDrag = false;
+
+  timeSlider = setupTimeSlider(
+    // onTimeChange — called continuously while dragging
+    (fraction) => {
+      mergerScene.setTimeFraction(fraction);
+      const time = mergerScene.getCurrentTime();
+      waveformPlot.setFraction(fraction);
+      waveformPlot.setCurrentTime(time);
+      evolutionPlot.setFraction(fraction);
+      evolutionPlot.setCurrentTime(time);
+      timeSlider.setValue(fraction, time);
+    },
+    // onDragStart — pause playback so it doesn't fight the user
+    () => {
+      wasPlayingBeforeDrag = playing;
+      playing = false;
+      chirpAudio.stop();
+    },
+    // onDragEnd — resume if it was playing before
+    (fraction) => {
+      if (wasPlayingBeforeDrag) {
+        playing = true;
+        mergerScene.startPlaying();
+        chirpAudio.play(fraction);
+        playButton.setPlaying(true);
+      }
+    }
+  );
 
   playButton = setupPlayButton((isPlaying) => {
     playing = isPlaying;
@@ -217,15 +254,16 @@ async function init() {
   // Start animation loop
   animate();
 
-  // Load catalog and default simulation
-  try {
-    const catalog = await fetchCatalog({ maxResults: 100, minOrbits: 5 });
-    catalogBrowser.render(catalog);
-  } catch (err) {
-    console.error('Failed to load catalog:', err);
-  }
-
+  // Load default simulation first (preloaded data — no backend needed)
   await loadSimulation(DEFAULT_SIM);
+
+  // Then load catalog in the background (needs backend, may take seconds)
+  fetchCatalog({ maxResults: 100, minOrbits: 5 })
+    .then(catalog => catalogBrowser.render(catalog))
+    .catch(err => console.error('Failed to load catalog:', err));
 }
 
-init().catch(console.error);
+init().catch(err => {
+  console.error('Init failed:', err);
+  document.getElementById('sim-title').textContent = `Init error: ${err.message}`;
+});

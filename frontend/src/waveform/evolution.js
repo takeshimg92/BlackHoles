@@ -23,6 +23,10 @@ export class EvolutionPlot {
     this.fraction = f;
   }
 
+  setCurrentTime(t) {
+    this._currentTime = t;
+  }
+
   render() {
     const { ctx, canvas, data } = this;
     if (!data) return;
@@ -44,7 +48,7 @@ export class EvolutionPlot {
     const tRange = tMax - tMin;
     const timeToX = (t) => padding.left + ((t - tMin) / tRange) * plotW;
 
-    const progressTime = tMin + this.fraction * tRange;
+    const progressTime = this._currentTime != null ? this._currentTime : tMin + this.fraction * tRange;
 
     // --- Left axis: Separation ---
     const sepArr = data.separation;
@@ -61,9 +65,9 @@ export class EvolutionPlot {
 
       // Left axis label
       ctx.fillStyle = '#6699ff';
-      ctx.font = '9px Inter, system-ui, sans-serif';
+      ctx.font = '10px Inter, system-ui, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('separation', padding.left, padding.top - 4);
+      ctx.fillText('Separation', padding.left, padding.top - 4);
     }
 
     // --- Right axis: Radiated energy fraction ---
@@ -123,13 +127,13 @@ export class EvolutionPlot {
       ctx.font = '10px Inter, system-ui, sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(
-        `E_rad = ${(currentE * 100).toFixed(3)}%`,
+        `Radiated energy: ${(currentE * 100).toFixed(3)}%`,
         w - 4, padding.top + 10
       );
 
       // Max label
       ctx.fillStyle = '#ffaa4466';
-      ctx.font = '9px Inter, system-ui, sans-serif';
+      ctx.font = '10px Inter, system-ui, sans-serif';
       ctx.fillText(`max ${(eMax * 100).toFixed(1)}%`, w - 4, padding.top - 4);
     }
 

@@ -30,30 +30,36 @@ const fragmentShader = `
 
   varying vec2 vUv;
 
-  vec2 lensDistortion(vec2 uv, vec2 bhPos, float mass) {
-    vec2 delta = uv - bhPos;
-    delta.x *= uAspect;
-
+  // Lensing: sample INWARD toward BH to show light bent around.
+  // Soft saturation d_eff = d*r/(d+r) guarantees deflection < dist,
+  // so source radius stays positive. No ring artifacts at any strength.
+  // Verified by test_lensing_monotonicity.py (137 parametrized cases).
+  vec4 applyLensing(vec4 color, vec2 uv, vec2 bhPos, float mass) {
+    vec2 aspectCorrect = vec2(uAspect, 1.0);
+    vec2 delta = (uv - bhPos) * aspectCorrect;
     float dist = length(delta);
-    if (dist < 0.001) return vec2(0.0);
 
-    float deflection = mass * uStrength / dist;
-    float falloff = smoothstep(0.5, 0.02, dist);
+    float rEH = mass * 0.06;
+    float rLens = rEH * 5.0;
+    float innerCutoff = rEH * 0.8;
 
-    vec2 dir = delta / dist;
-    vec2 offset = -dir * deflection * falloff;
-    offset.x /= uAspect;
+    if (dist > innerCutoff && dist < rLens) {
+      vec2 dir = normalize(delta);
+      float d = uStrength * rEH * rEH / (dist * dist + rEH * 0.5);
+      d *= smoothstep(rLens, rLens * 0.3, dist);
+      // Soft saturation: approaches dist but never exceeds it
+      float dEff = d * dist / (d + dist + 0.0001);
+      color = texture2D(tScene, uv - (dir / aspectCorrect) * dEff);
+    }
 
-    return offset;
+    return color;
   }
 
   void main() {
-    vec2 totalOffset = vec2(0.0);
-    totalOffset += lensDistortion(vUv, uBH1, uMass1);
-    totalOffset += lensDistortion(vUv, uBH2, uMass2);
-
-    vec2 displaced = vUv + totalOffset;
-    gl_FragColor = texture2D(tScene, displaced);
+    vec4 color = texture2D(tScene, vUv);
+    color = applyLensing(color, vUv, uBH1, uMass1);
+    color = applyLensing(color, vUv, uBH2, uMass2);
+    gl_FragColor = color;
   }
 `;
 
@@ -91,7 +97,7 @@ export class LensingPass {
         uMass1: { value: 0.5 },
         uMass2: { value: 0.5 },
         uAspect: { value: width / height },
-        uStrength: { value: 0.0005 },
+        uStrength: { value: 0.3 },
       },
       depthTest: false,
       depthWrite: false,

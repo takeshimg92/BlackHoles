@@ -23,6 +23,15 @@ export class WaveformPlot {
     this.fraction = f;
   }
 
+  /**
+   * Set the current time directly (in simulation M units).
+   * More accurate than fraction when waveform and trajectory
+   * have different time ranges.
+   */
+  setCurrentTime(t) {
+    this._currentTime = t;
+  }
+
   render() {
     const { ctx, canvas, data } = this;
     if (!data) return;
@@ -57,14 +66,13 @@ export class WaveformPlot {
     ctx.lineTo(padding.left + plotW, padding.top + plotH / 2);
     ctx.stroke();
 
-    // Axis labels
+    // Y-axis label
     ctx.fillStyle = '#8888a0';
-    ctx.font = '11px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('t / M', padding.left + plotW / 2, h - 10);
+    ctx.font = '11px Inter, system-ui, sans-serif';
     ctx.save();
     ctx.translate(15, padding.top + plotH / 2);
     ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
     ctx.fillText('h(t)', 0, 0);
     ctx.restore();
 
@@ -73,12 +81,6 @@ export class WaveformPlot {
     const tMax = data.time[data.time.length - 1];
     const tRange = tMax - tMin;
     const timeToX = (t) => padding.left + ((t - tMin) / tRange) * plotW;
-
-    // Time labels
-    ctx.textAlign = 'left';
-    ctx.fillText(tMin.toFixed(0), padding.left, h - 22);
-    ctx.textAlign = 'right';
-    ctx.fillText(tMax.toFixed(0), padding.left + plotW, h - 22);
 
     // Plot full waveform in gray (plotted against true time)
     ctx.strokeStyle = 'rgba(136, 136, 160, 0.3)';
@@ -92,9 +94,10 @@ export class WaveformPlot {
     }
     ctx.stroke();
 
-    // Progress overlay in white — find the index corresponding to
-    // the current time fraction (which is in simulation-time space)
-    const progressTime = tMin + this.fraction * tRange;
+    // Progress overlay in white — use the actual simulation time
+    // (not fraction * waveform range, which diverges when the waveform
+    // and trajectory have different time spans)
+    const progressTime = this._currentTime != null ? this._currentTime : tMin + this.fraction * tRange;
     // Binary search for the index
     let progressIdx = 0;
     for (let i = 0; i < data.time.length; i++) {
@@ -128,9 +131,9 @@ export class WaveformPlot {
 
     // Title
     ctx.fillStyle = '#4a7cff';
-    ctx.font = '10px monospace';
+    ctx.font = '11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`h(t)  (${data.mode[0]},${data.mode[1]})`, padding.left, 14);
+    ctx.fillText('Gravitational wave strain', padding.left, 14);
   }
 
   _handleResize() {

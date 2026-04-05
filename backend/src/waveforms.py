@@ -5,6 +5,21 @@ import numpy as np
 from .simcache import get_simulation
 
 
+def _get_time_shift(sim) -> float:
+    """Compute the time shift to align waveform peak with common_horizon_time."""
+    metadata = sim.metadata
+    common_horizon_time = metadata.get("common_horizon_time")
+    if common_horizon_time is None:
+        return 0.0
+
+    h = sim.h
+    h22 = h.data[:, h.index(2, 2)]
+    t_raw = np.array(h.t)
+    amplitude_raw = np.abs(h22)
+    peak_time = t_raw[np.argmax(amplitude_raw)]
+    return common_horizon_time - peak_time
+
+
 def load_waveform(sim_id: str, mode: tuple[int, int] = (2, 2), max_points: int = 4000) -> dict:
     """Load the strain waveform h(t) for a given simulation and mode.
 
@@ -62,6 +77,10 @@ def load_waveform(sim_id: str, mode: tuple[int, int] = (2, 2), max_points: int =
     phase = np.interp(t, t_raw, phase_raw)
     frequency = np.interp(t, t_raw, frequency_raw)
 
+    # Align waveform peak with common_horizon_time.
+    # See _get_time_shift() for rationale.
+    t = t + _get_time_shift(sim)
+
     # Reconstruct h from interpolated envelope and phase
     h_real = (amplitude * np.cos(phase)).tolist()
     h_imag = (amplitude * np.sin(phase)).tolist()
@@ -102,13 +121,22 @@ def generate_audio_data(
     mode_idx = h.index(*mode)
     h_mode = h.data[:, mode_idx]
 
-    t = np.array(h.t)
+    t_raw = np.array(h.t)
+    dt_shift = _get_time_shift(sim)
+    t = t_raw + dt_shift  # aligned time axis
     amplitude = np.abs(h_mode)
     phase = np.unwrap(np.angle(h_mode))
-    freq_gw = np.gradient(phase, t) / (2 * np.pi)  # GW frequency in 1/M
+    freq_gw = np.gradient(phase, t_raw) / (2 * np.pi)  # GW frequency in 1/M
 
-    # Map simulation time to audio time [0, target_duration]
-    t_frac = (t - t[0]) / (t[-1] - t[0])
+    # Map aligned time to a [0, 1] fraction using the trajectory's
+    # time span (which starts at 0).  This ensures the audio peak
+    # fraction matches the trajectory's merger fraction.
+    from .orbits import load_trajectories
+    traj = load_trajectories(sim_id)
+    traj_t_min = traj["time"][0]
+    traj_t_max = traj["time"][-1]
+    traj_span = traj_t_max - traj_t_min
+    t_frac = np.clip((t - traj_t_min) / traj_span, 0, 1)
     n_samples = int(target_duration * sample_rate)
     t_audio = np.linspace(0, target_duration, n_samples)
     t_frac_audio = t_audio / target_duration

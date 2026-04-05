@@ -75,16 +75,33 @@ html, body {
 /* Header / Info bar */
 #info-bar {
   display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 10px 20px;
+  flex-direction: column;
+  padding: 0;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
 }
 
+#info-bar-top {
+  padding: 8px 20px 4px;
+}
+
+#info-bar-bottom {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 2px 20px 8px;
+}
+
+#app-title {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+
 #sim-title {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: 0.5px;
   color: var(--accent);
@@ -129,7 +146,7 @@ html, body {
 .param-tooltip:hover::after {
   content: attr(title);
   position: absolute;
-  top: 22px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-panel);
@@ -143,6 +160,12 @@ html, body {
   z-index: 100;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Tooltips in the info bar open downward */
+#info-bar .param-tooltip:hover::after {
+  bottom: auto;
+  top: 22px;
 }
 
 .param-label sub {
@@ -524,4 +547,74 @@ html, body {
 
 .formula .katex {
   font-size: 1.1em;
+}
+
+/* About tab */
+#panel-about {
+  overflow-y: auto;
+}
+
+#about-content {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  line-height: 1.6;
+}
+
+#about-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 4px;
+}
+
+#about-content .about-tagline {
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(255, 200, 100, 0.7);
+  margin-bottom: 16px;
+}
+
+#about-content p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 12px;
+}
+
+#about-content h4 {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 20px 0 8px;
+}
+
+#about-content code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-panel);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+#about-content a {
+  color: rgba(255, 200, 100, 0.8);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+#about-content a:hover {
+  color: rgba(255, 200, 100, 1);
+  text-decoration: underline;
+}
+
+.about-links {
+  display: flex;
+  gap: 16px;
+}
+
+.about-links a {
+  font-size: 12px;
 }

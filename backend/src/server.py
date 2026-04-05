@@ -61,7 +61,7 @@ def waveform(
 @app.get("/api/trajectories/{sim_id:path}")
 def trajectories(
     sim_id: str,
-    max_points: int = Query(2000, ge=100, le=10000),
+    max_points: int = Query(6000, ge=100, le=20000),
 ):
     try:
         return load_trajectories(sim_id, max_points=max_points)

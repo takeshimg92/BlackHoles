@@ -207,6 +207,7 @@ export class MergerScene {
         data._cumulativePhase[i] = data._cumulativePhase[i - 1] + 2 * Math.PI * fAvg * dt;
       }
     }
+
   }
 
   /**

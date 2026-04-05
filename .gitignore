@@ -18,3 +18,6 @@ assets/*.png
 
 # SXS cache
 .sxs/
+
+# AI assistants
+CLAUDE.md
