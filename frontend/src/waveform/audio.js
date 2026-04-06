@@ -31,9 +31,20 @@ export class ChirpAudio {
    * @param {number} duration — target playback duration in seconds
    */
   synthesize(waveform, trajectories, duration) {
+    // Store data for lazy synthesis — actual AudioContext creation
+    // is deferred to play() to satisfy mobile autoplay policies.
+    this._pendingSynth = { waveform, trajectories, duration };
+    this._doSynthesize();
+  }
+
+  _doSynthesize() {
+    if (!this._pendingSynth) return;
     if (!this.audioCtx) {
-      this.audioCtx = new AudioContext();
+      // Will be created in play() on first user gesture
+      return;
     }
+    const { waveform, trajectories, duration } = this._pendingSynth;
+    this._pendingSynth = null;
 
     const wfTime = waveform.time;
     const wfAmp = waveform.amplitude;
@@ -106,11 +117,6 @@ export class ChirpAudio {
     // Create AudioBuffer
     this.buffer = this.audioCtx.createBuffer(1, nSamples, SAMPLE_RATE);
     this.buffer.getChannelData(0).set(chirp);
-
-    if (!this.gainNode) {
-      this.gainNode = this.audioCtx.createGain();
-      this.gainNode.connect(this.audioCtx.destination);
-    }
   }
 
   setEnabled(enabled) {
@@ -119,11 +125,22 @@ export class ChirpAudio {
   }
 
   async play(fromFraction = 0) {
-    if (!this.enabled || !this.buffer || !this.audioCtx) return;
+    if (!this.enabled) return;
+
+    // Create AudioContext on first user gesture (required by mobile browsers)
+    if (!this.audioCtx) {
+      this.audioCtx = new AudioContext();
+      this.gainNode = this.audioCtx.createGain();
+      this.gainNode.connect(this.audioCtx.destination);
+      // Synthesize any pending data now that we have a context
+      this._doSynthesize();
+    }
 
     if (this.audioCtx.state === 'suspended') {
       await this.audioCtx.resume();
     }
+
+    if (!this.buffer) return;
 
     this._stopSource();
 
