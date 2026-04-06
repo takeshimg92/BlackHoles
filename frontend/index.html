@@ -566,6 +566,80 @@
           </div>
 
           <div class="impl-section">
+            <h2>Simplifications &amp; Caveats</h2>
+            <p>
+              This visualization is designed as an <strong>educational tool</strong>,
+              not a physically exact simulation. Several deliberate simplifications
+              have been made in the interest of performance, clarity, and accessibility:
+            </p>
+
+            <h3>Waveform–orbit synchronization</h3>
+            <p>
+              The gravitational wave strain $h(t)$ is extracted at future null infinity,
+              while the orbital trajectories are tracked in source coordinates. These two
+              time frames differ by a gauge-dependent retarded-time offset. We align the
+              waveform peak with the common horizon formation time (the standard NR
+              convention), but this is an approximate synchronization — not a rigorous
+              matching of the two coordinate systems. The visual impression of "the
+              waveform peaks when the black holes merge" is qualitatively correct but
+              not frame-by-frame exact.
+            </p>
+
+            <h3>Gravitational lensing</h3>
+            <p>
+              The lensing effect is a <strong>screen-space post-processing
+              approximation</strong>, not a proper null geodesic ray tracer. Real
+              gravitational lensing requires tracing light rays backward through the
+              curved Kerr spacetime of each black hole. Our implementation displaces
+              UV coordinates in screen space using an ad-hoc $1/r^2$ deflection profile
+              with soft saturation — this produces a visually convincing Einstein ring
+              effect but does not capture higher-order images, relativistic aberration,
+              or the correct dependence on spin orientation. The lensing strength
+              slider is a visual parameter with no direct physical correspondence.
+            </p>
+
+            <h3>Black hole halos</h3>
+            <p>
+              The white glow rings around each black hole are <strong>purely
+              cosmetic</strong> — they represent no physical phenomenon. Real black
+              holes have a photon sphere (at $r = 3M/2$ for Schwarzschild) where
+              light can orbit, producing a bright ring in ray-traced images. Our halo
+              sprites are rendered in an overlay pass to avoid interaction with the
+              lensing shader, and their size/brightness are tuned for visual clarity
+              rather than physical accuracy.
+            </p>
+
+            <h3>Spacetime mesh deformation</h3>
+            <p>
+              The "rubber sheet" mesh is a pedagogical analogy, not a solution to
+              Einstein's equations. The vertical displacement combines:
+              (1) a softened Newtonian potential well $\Phi \propto -M/(r + r_{\text{soft}})$
+              near each black hole, and (2) a far-field quadrupole radiation pattern
+              $h_+ \propto \cos(2\varphi - \Phi_{\text{ret}})/r$ in the wave zone.
+              Neither of these is derived from the actual simulation's metric data —
+              they are approximate visualizations of the expected qualitative behavior.
+              The transition between near and wave zones uses an ad-hoc smoothstep,
+              and the wave propagation speed is set to $c = 1$ in code units without
+              rigorous calibration.
+            </p>
+
+            <h3>Audio sonification</h3>
+            <p>
+              The chirp sound is a <strong>frequency-mapped sonification</strong>,
+              not a recording of an actual physical signal. Gravitational waves
+              oscillate at frequencies of $\sim 20$–$300\,\text{Hz}$ for stellar-mass
+              mergers — technically in the human hearing range, but with strain
+              amplitudes of $h \sim 10^{-21}$ that produce no audible sound. Our
+              sonification maps the GW frequency linearly into $[40, 800]\,\text{Hz}$
+              and uses the waveform amplitude envelope to modulate the volume. The
+              result captures the qualitative "chirp" character (rising frequency
+              and amplitude toward merger) but the actual pitches, durations, and
+              loudness are artificial. The playback duration is user-controlled and
+              has no relation to the physical timescale of the merger.
+            </p>
+          </div>
+
+          <div class="impl-section">
             <h2>Technology</h2>
             <p>
               <strong>Backend:</strong> Python 3.12, FastAPI, <code>sxs</code> package, NumPy, SciPy.
